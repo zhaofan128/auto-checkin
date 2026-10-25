@@ -1,0 +1,42 @@
+name: daily-checkin
+
+on:
+  schedule:
+    # GitHub Actions 的 cron 使用 UTC。下面三个时间分别对应北京时间的 06:20 / 09:10 / 13:30
+    - cron: '20 22 * * *'
+    - cron: '10 1 * * *'
+    - cron: '30 5 * * *'
+  # 允许在 Actions 页面手动点一次「Run workflow」立即执行
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workbuddy:
+    name: WorkBuddy 签到 + 派 Buddy 旅行
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run checkin
+        env:
+          WB_RT: ${{ secrets.WB_RT }}
+        run: python checkin_wb.py
+
+  traework:
+    name: TraeWork 签到
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run checkin
+        env:
+          TRAE_CREDS: ${{ secrets.TRAE_CREDS }}
+        run: python checkin_trae.py
