@@ -8,11 +8,16 @@
 
 到 [Releases](https://github.com/zhaofan128/auto-checkin/releases) 下载 `AutoCheckin.exe`（绿色单文件，无需安装 Python）：
 
-1. 顶部填入 GitHub Token（`repo` 权限），点「保存并连接」
-2. 点「① 提取本机凭据」→「② 写入 GitHub Secrets」
-3. 完成。之后每天云端自动签，App 里随时看记录、手动触发、本机直签
+液态玻璃界面 · 果冻开关 · **一键开启**：
+
+1. 双击运行，自动识别本机已保存的 GitHub Token（无需手动输入）
+2. 点「🚀 一键开启」—— 提取本机凭据、写入 Secrets、开启自动轮换，一次搞定
+3. 仪表盘随时看两个平台的余额 / 今日签到 / 猫猫旅行状态
+4. 果冻开关独立控制 WorkBuddy / TraeWork 的云端自动签到启停
+5. 「💻 立即签到」本机直签（幂等，顺带给令牌续期）
 
 > Token 保存在本机 `%APPDATA%\AutoCheckin\config.json`，不上传到任何第三方。
+> 需要 Windows 10+ 且已安装 Edge WebView2 运行时（绝大多数系统自带）。
 > 源码在 [app/](app/) 目录，可用 `pyinstaller` 自行打包。
 
 ## ✨ 特性
