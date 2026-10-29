@@ -42,6 +42,7 @@ UA = "Trae/%s" % IDE_VERSION
 TIMEOUT = 30
 
 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+_G = {"rotated": False}  # 标记本次是否拿到了新的 refreshToken
 
 
 def _post(url, headers, body="{}"):
@@ -191,6 +192,18 @@ def refresh():
         except Exception:
             res, code = {}, None
         if res.get("Token"):
+            # 滚动续期：把新的 refreshToken 写回凭据文件，由 workflow 更新 Secret
+            new_rt = res.get("RefreshToken") or ""
+            if new_rt:
+                try:
+                    new_creds = dict(CREDS)
+                    new_creds["refresh_token"] = new_rt
+                    with open(os.environ.get("TRAE_NEW_CREDS_FILE", "trae_new_creds.json"),
+                              "w", encoding="utf-8") as f:
+                        json.dump(new_creds, f, ensure_ascii=False)
+                    _G["rotated"] = True
+                except Exception:
+                    pass
             return res["Token"], "ok:%s/%s" % (cid, pcode)
         last = (str(st), text[:200])
         if str(code) not in ("10101", "20403"):
@@ -235,7 +248,7 @@ def main():
     if not token:
         print(json.dumps({"ok": False, "stage": "refresh", "msg": note}, ensure_ascii=False))
         return 2
-    out = {"ok": True, "refresh": note, "token": mask(token)}
+    out = {"ok": True, "refresh": note, "token": mask(token), "rotated": _G["rotated"]}
     h = checkin_headers(token)
     st, text = _post(UG_HOST + "/trae/api/v2/ug/checkin_credits/status", h, '{"req_source":1}')
     try:
