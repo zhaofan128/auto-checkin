@@ -80,6 +80,19 @@ def main():
         print(json.dumps({"ok": False, "stage": "config", "msg": "WB_RT 未设置"}, ensure_ascii=False))
         return 2
     r = refresh(RT)
+    # 令牌滚动续期：服务端每次都会下发新的 refreshToken，把它落盘，由 workflow 写回 Secrets
+    new_rt = ""
+    try:
+        new_rt = (r.get("data") or {}).get("refreshToken") or ""
+    except Exception:
+        new_rt = ""
+    if new_rt:
+        out_file = os.environ.get("WB_NEW_RT_FILE", "wb_new_rt.txt")
+        try:
+            with open(out_file, "w", encoding="utf-8") as f:
+                f.write(new_rt)
+        except Exception:
+            pass
     if r.get("code") != 0 or not isinstance(r.get("data"), dict):
         print(json.dumps({"ok": False, "stage": "refresh", "code": r.get("code"),
                           "msg": r.get("msg")}, ensure_ascii=False))
@@ -88,7 +101,7 @@ def main():
     if not at:
         print(json.dumps({"ok": False, "stage": "refresh", "msg": "no accessToken"}, ensure_ascii=False))
         return 2
-    out = {"ok": True, "token": mask(at)}
+    out = {"ok": True, "token": mask(at), "rotated": bool(new_rt)}
 
     _st, body = call(BILLING, STATUS, at)
     d = body.get("data") if isinstance(body, dict) else {}
