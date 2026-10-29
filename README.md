@@ -4,6 +4,17 @@
 
 **你不需要开着电脑，也不需要开着手机** —— 一切跑在 GitHub 的服务器上。
 
+## 🖥 桌面版（不想碰命令行？）
+
+到 [Releases](https://github.com/zhaofan128/auto-checkin/releases) 下载 `AutoCheckin.exe`（绿色单文件，无需安装 Python）：
+
+1. 顶部填入 GitHub Token（`repo` 权限），点「保存并连接」
+2. 点「① 提取本机凭据」→「② 写入 GitHub Secrets」
+3. 完成。之后每天云端自动签，App 里随时看记录、手动触发、本机直签
+
+> Token 保存在本机 `%APPDATA%\AutoCheckin\config.json`，不上传到任何第三方。
+> 源码在 [app/](app/) 目录，可用 `pyinstaller` 自行打包。
+
 ## ✨ 特性
 
 - **设备全离线**：作业在 GitHub 的 runner 上执行，跟你本机、客户端是否运行完全无关。
