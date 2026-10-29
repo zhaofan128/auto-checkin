@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AutoCheckin</title>
+<style>
+:root{
+  --bg:#0b0d16;
+  --glass:rgba(255,255,255,.065);
+  --glass-strong:rgba(255,255,255,.10);
+  --stroke:rgba(255,255,255,.14);
+  --stroke-soft:rgba(255,255,255,.09);
+  --txt:#f2f4fa;
+  --txt-dim:rgba(242,244,250,.55);
+  --txt-faint:rgba(242,244,250,.34);
+  --green:#34d868;
+  --blue:#5b8cff;
+  --violet:#a06bff;
+  --pink:#ff6ba9;
+  --amber:#ffb84d;
+  --red:#ff5f6a;
+  --r-lg:30px;
+  --r-md:20px;
+  --r-sm:14px;
+  --spring:cubic-bezier(.34,1.56,.5,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei UI",-apple-system,"SF Pro Display","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--txt);overflow-x:hidden;
+  font-feature-settings:"tnum";user-select:none;
+}
+::selection{background:rgba(91,140,255,.35)}
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ============ 液态背景 ============ */
+.blobs{position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(90px);opacity:.55}
+.blob{position:absolute;border-radius:50%;mix-blend-mode:screen;animation:drift 26s ease-in-out infinite alternate}
+.blob.b1{width:44vw;height:44vw;left:-6%;top:-8%;background:radial-gradient(circle,#4a6bff,transparent 65%)}
+.blob.b2{width:38vw;height:38vw;right:-4%;top:6%;background:radial-gradient(circle,#a44cff,transparent 65%);animation-delay:-8s}
+.blob.b3{width:36vw;height:36vw;left:22%;bottom:-12%;background:radial-gradient(circle,#ff5f9e,transparent 65%);animation-delay:-14s}
+.blob.b4{width:26vw;height:26vw;right:14%;bottom:-6%;background:radial-gradient(circle,#00d4c8,transparent 65%);animation-delay:-20s}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(6vw,-4vh) scale(1.12)}
+  100%{transform:translate(-4vw,5vh) scale(.95)}
+}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ============ 玻璃基元 ============ */
+.glass{
+  position:relative;
+  background:var(--glass);
+  backdrop-filter:blur(28px) saturate(170%);
+  -webkit-backdrop-filter:blur(28px) saturate(170%);
+  border:1px solid var(--stroke);
+  border-radius:var(--r-lg);
+  box-shadow:0 18px 48px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(255,255,255,.03);
+}
+.glass::after{ /* 顶部高光 */
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.10),transparent 28%);
+}
+
+/* ============ 布局 ============ */
+.wrap{position:relative;z-index:2;max-width:900px;margin:0 auto;padding:26px 26px 60px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.logo{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:23px;
+  background:linear-gradient(135deg,#5b8cff,#a06bff 55%,#ff6ba9);
+  box-shadow:0 8px 24px rgba(120,90,255,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+.logo span{filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+h1{font-size:21px;font-weight:700;letter-spacing:.2px}
+h1 small{display:block;font-size:12px;font-weight:400;color:var(--txt-dim);margin-top:2px;letter-spacing:.4px}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--stroke-soft);backdrop-filter:blur(20px);
+  font-size:12.5px;color:var(--txt-dim);cursor:pointer;transition:all .3s var(--spring)}
+.chip:hover{background:var(--glass-strong);color:var(--txt);transform:translateY(-1px)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--txt-faint);flex:none}
+.dot.ok{background:var(--green);box-shadow:0 0 10px rgba(52,216,104,.8);animation:pulse 2.4s infinite}
+.dot.bad{background:var(--red)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,216,104,.5)}50%{box-shadow:0 0 0 6px rgba(52,216,104,0)}}
+
+/* ============ Hero / 一键开启 ============ */
+.hero{padding:34px 34px 30px;text-align:center;margin-bottom:18px;overflow:hidden}
+.hero h2{font-size:26px;font-weight:800;letter-spacing:.3px;margin-bottom:8px}
+.hero p{color:var(--txt-dim);font-size:14px;line-height:1.7}
+.hero .steps{margin:18px auto 4px;text-align:left;max-width:430px;display:none}
+.hero .steps.show{display:block}
+.step-line{display:flex;gap:10px;align-items:center;padding:7px 4px;font-size:13.5px;color:var(--txt-dim);
+  animation:slidein .45s var(--spring) both}
+.step-line .tick{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;
+  background:linear-gradient(135deg,var(--green),#1fae52);color:#fff;flex:none}
+.step-line.warn .tick{background:linear-gradient(135deg,var(--amber),#e08a00)}
+@keyframes slidein{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+
+/* ============ 按钮 ============ */
+.btn{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:15px 34px;border-radius:999px;border:1px solid var(--stroke);
+  font-family:inherit;font-size:15.5px;font-weight:600;color:var(--txt);cursor:pointer;
+  background:var(--glass-strong);backdrop-filter:blur(20px);
+  transition:transform .35s var(--spring),box-shadow .3s,background .3s,opacity .3s;
+  box-shadow:0 10px 26px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.btn:hover{transform:translateY(-2px) scale(1.02);background:rgba(255,255,255,.14)}
+.btn:active{transform:scale(.95)}
+.btn.primary{
+  background:linear-gradient(135deg,#5b8cff,#8f5cff 60%,#c44cff);
+  border-color:rgba(255,255,255,.28);color:#fff;
+  box-shadow:0 14px 34px rgba(110,80,255,.5),inset 0 1px 0 rgba(255,255,255,.4);
+}
+.btn.primary:hover{box-shadow:0 18px 44px rgba(110,80,255,.65),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.big{font-size:17px;padding:17px 46px;margin-top:22px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:var(--stroke-soft)}
+.btn.ghost:hover{background:var(--glass)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btn .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .8s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ============ 平台卡片 ============ */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{padding:24px 24px 20px;border-radius:var(--r-lg)}
+.card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px}
+.emoji{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:24px;flex:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 16px rgba(0,0,0,.3)}
+.emoji.wb{background:linear-gradient(135deg,#ff9d5c,#ff5f9e)}
+.emoji.tr{background:linear-gradient(135deg,#3ad0ff,#5b8cff)}
+.card-top .t{flex:1;min-width:0}
+.card-top .t b{font-size:16.5px;font-weight:700;display:block}
+.card-top .t span{font-size:12px;color:var(--txt-dim)}
+.num{font-size:34px;font-weight:800;letter-spacing:.5px;line-height:1;margin:2px 0 4px}
+.num small{font-size:13px;font-weight:500;color:var(--txt-dim);margin-left:5px;letter-spacing:0}
+.sub{font-size:12.5px;color:var(--txt-dim);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.sub .ok{color:var(--green)}
+.sub .warn{color:var(--amber)}
+.sub .err{color:var(--red)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;
+  background:rgba(255,255,255,.08);border:1px solid var(--stroke-soft)}
+.pill.on{background:rgba(52,216,104,.14);border-color:rgba(52,216,104,.35);color:var(--green)}
+.pill.off{background:rgba(255,95,106,.12);border-color:rgba(255,95,106,.3);color:var(--red)}
+.pill.idle{color:var(--txt-dim)}
+.card-foot{display:flex;align-items:flex-end;justify-content:space-between;margin-top:16px;gap:10px}
+.auto-label{font-size:12px;color:var(--txt-dim);line-height:1.5;padding-bottom:2px}
+.auto-label b{color:var(--txt);font-weight:600;display:block;font-size:13px}
+
+/* ============ 果冻开关 ============ */
+.jelly{position:relative;width:62px;height:37px;flex:none;cursor:pointer}
+.jelly input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:3;margin:0}
+.track{
+  position:absolute;inset:0;border-radius:999px;
+  background:rgba(255,255,255,.12);border:1px solid var(--stroke-soft);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.35);
+  transition:background .45s var(--spring),border-color .4s,box-shadow .4s,transform .5s var(--spring);
+}
+.knob{
+  position:absolute;top:3.5px;left:4px;width:29px;height:29px;border-radius:50%;
+  background:linear-gradient(180deg,#fff,#e4e7f0);
+  box-shadow:0 3px 8px rgba(0,0,0,.45),inset 0 -2px 4px rgba(0,0,0,.08),inset 0 2px 3px #fff;
+  transition:left .5s var(--spring),transform .5s var(--spring),width .3s var(--spring);
+  z-index:2;
+}
+.jelly.squish .knob{width:34px;transform:scale(1.06,.88)}
+.jelly.squish .track{transform:scale(1.04,.94)}
+.jelly input:checked ~ .track{
+  background:linear-gradient(135deg,#2fca5f,#1fae52);
+  border-color:rgba(255,255,255,.32);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 0 18px rgba(52,216,104,.4);
+}
+.jelly input:checked ~ .knob{left:29px;background:linear-gradient(180deg,#fff,#f2fff5)}
+.jelly.off-fade{opacity:.4;pointer-events:none}
+
+/* ============ 动作行 ============ */
+.actions{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.actions .btn{flex:1;min-width:150px;padding:13px 18px;font-size:14px}
+
+/* ============ 运行记录 ============ */
+.sect-title{display:flex;align-items:center;gap:10px;margin:4px 2px 14px}
+.sect-title h3{font-size:15px;font-weight:700}
+.sect-title .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--stroke),transparent)}
+.sect-title .chip{padding:5px 12px;font-size:11.5px}
+.runrow{padding:15px 20px;border-radius:var(--r-md);margin-bottom:10px;cursor:pointer;
+  transition:transform .35s var(--spring),background .3s;overflow:hidden}
+.runrow:hover{transform:translateY(-2px);background:var(--glass-strong)}
+.runrow .rr-top{display:flex;align-items:center;gap:12px}
+.rr-time{font-size:13px;color:var(--txt-dim);min-width:88px}
+.rr-state{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 11px;border-radius:999px}
+.rr-state.s{background:rgba(52,216,104,.13);color:var(--green);border:1px solid rgba(52,216,104,.3)}
+.rr-state.f{background:rgba(255,95,106,.13);color:var(--red);border:1px solid rgba(255,95,106,.3)}
+.rr-state.r{background:rgba(255,184,77,.13);color:var(--amber);border:1px solid rgba(255,184,77,.3)}
+.rr-mini{font-size:12px;color:var(--txt-faint);margin-left:auto;display:flex;gap:14px}
+.rr-detail{max-height:0;overflow:hidden;transition:max-height .5s var(--spring)}
+.runrow.open .rr-detail{max-height:340px}
+.rr-detail pre{
+  margin-top:12px;padding:13px 15px;border-radius:12px;font-size:11.5px;line-height:1.65;
+  background:rgba(0,0,0,.32);border:1px solid var(--stroke-soft);color:#bfe8cd;
+  font-family:"Cascadia Code",Consolas,monospace;white-space:pre-wrap;word-break:break-all;user-select:text
+}
+.empty{padding:34px;text-align:center;color:var(--txt-faint);font-size:13.5px;border-radius:var(--r-md);border:1px dashed var(--stroke-soft)}
+
+/* ============ 骨架屏 ============ */
+.skel{border-radius:12px;background:linear-gradient(100deg,rgba(255,255,255,.05) 40%,rgba(255,255,255,.11) 50%,rgba(255,255,255,.05) 60%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* ============ Toast ============ */
+#toast{position:fixed;top:22px;left:50%;transform:translate(-50%,-80px);z-index:99;
+  display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:999px;
+  background:rgba(28,30,46,.75);backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--stroke);box-shadow:0 14px 40px rgba(0,0,0,.5);
+  font-size:13.5px;transition:transform .55s var(--spring),opacity .4s;opacity:0;max-width:86vw}
+#toast.show{transform:translate(-50%,0);opacity:1}
+#toast .ico{font-size:16px}
+
+/* ============ 设置弹窗 ============ */
+#mask{position:fixed;inset:0;background:rgba(6,8,14,.55);backdrop-filter:blur(8px);z-index:50;
+  display:none;align-items:center;justify-content:center}
+#mask.show{display:flex}
+.modal{width:min(460px,90vw);padding:28px;border-radius:var(--r-lg);animation:pop .45s var(--spring)}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:17px;margin-bottom:6px}
+.modal p{font-size:12.5px;color:var(--txt-dim);line-height:1.65;margin-bottom:16px}
+.modal textarea{
+  width:100%;height:88px;resize:none;border-radius:var(--r-sm);padding:12px 14px;
+  background:rgba(0,0,0,.3);border:1px solid var(--stroke-soft);color:var(--txt);
+  font-family:Consolas,monospace;font-size:12px;outline:none;user-select:text}
+.modal textarea:focus{border-color:rgba(91,140,255,.55)}
+.modal .row{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+.modal .row .btn{padding:11px 24px;font-size:13.5px}
+
+.fade-in{animation:fadein .6s var(--spring) both}
+@keyframes fadein{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+<div class="grain"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><span>✨</span></div>
+    <h1>AutoCheckin<small>Buddy 加油站 · TraeWork · 云端自动签到</small></h1>
+    <div class="spacer"></div>
+    <div class="chip" id="connChip"><div class="dot" id="connDot"></div><span id="connTxt">连接中…</span></div>
+    <div class="chip" id="setBtn">⚙ 设置</div>
+  </header>
+
+  <!-- 未配置：一键开启 -->
+  <section class="hero glass fade-in" id="hero">
+    <h2>开启每日自动签到</h2>
+    <p>电脑和手机全部关机也会执行 —— 签到任务跑在 GitHub 云端，<br>
+       令牌自动滚动续期，配置一次就不用再管。</p>
+    <button class="btn primary big" id="oneBtn">🚀&nbsp; 一键开启</button>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <!-- 已配置：仪表盘 -->
+  <div id="dash" style="display:none">
+    <div class="grid">
+      <section class="card glass fade-in">
+        <div class="card-top">
+          <div class="emoji wb">🎁</div>
+          <div class="t"><b>WorkBuddy</b><span>Buddy 加油站 · 派猫猫旅行</span></div>
+        </div>
+        <div class="num" id="wbBal"><div class="skel" style="width:120px;height:34px"></div><small>积分</small></div>
+        <div class="sub" id="wbSub"><span class="pill idle">加载中…</span></div>
+        <div class="card-foot">
+          <div class="auto-label"><b>云端自动签到</b>每天 06:20 / 09:10 / 13:30</div>
+          <label class="jelly" id="wbSw"><input type="checkbox" checked><div class="track"></div><div class="knob"></div></label>
+        </div>
+      </section>
+
+      <section class="card glass fade-in">
+        <div class="card-top">
+          <div class="emoji tr">⚡</div>
+          <div class="t"><b>TraeWork</b><span>Trae CN · 每日积分</span></div>
+        </div>
+        <div class="num" id="trBal"><div class="skel" style="width:120px;height:34px"></div><small>积分</small></div>
+        <div class="sub" id="trSub"><span class="pill idle">加载中…</span></div>
+        <div class="card-foot">
+          <div class="auto-label"><b>云端自动签到</b>每天 06:20 / 09:10 / 13:30</div>
+          <label class="jelly" id="trSw"><input type="checkbox" checked><div class="track"></div><div class="knob"></div></label>
+        </div>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="localBtn">💻 立即签到（本机）</button>
+      <button class="btn" id="cloudBtn">☁ 云端跑一次</button>
+      <button class="btn ghost" id="refreshBtn">↻ 刷新状态</button>
+    </div>
+  </div>
+
+  <div class="sect-title">
+    <h3>云端运行记录</h3><div class="ln"></div>
+    <div class="chip" id="openGh">在 GitHub 打开 ↗</div>
+  </div>
+  <div id="runs">
+    <div class="runrow glass"><div class="skel" style="width:60%;height:16px"></div></div>
+    <div class="runrow glass"><div class="skel" style="width:45%;height:16px"></div></div>
+  </div>
+</div>
+
+<div id="toast"><span class="ico" id="toastIco">✅</span><span id="toastTxt"></span></div>
+
+<div id="mask">
+  <div class="modal glass">
+    <h3>⚙ 设置</h3>
+    <p>GitHub Token（需要 <b>repo</b> 权限）。保存在本机 <code>%APPDATA%\AutoCheckin\config.json</code>，<br>
+       仅用于写入你自己仓库的 Secrets 与读取运行记录。留空则沿用已保存的。</p>
+    <textarea id="tokenInput" placeholder="ghp_… 或 gho_… 粘贴到这里"></textarea>
+    <div class="row">
+      <button class="btn ghost" id="setCancel">取消</button>
+      <button class="btn primary" id="setSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let STATE={token_ok:false,configured:false};
+let RUNS_URL="";
+
+/* ---------- pywebview 桥 ---------- */
+let API=null;
+function ready(){return new Promise(r=>{
+  if(window.pywebview&&window.pywebview.api){API=window.pywebview.api;r();return;}
+  window.addEventListener('pywebviewready',()=>{API=window.pywebview.api;r();});
+})}
+const call=async(fn,...args)=>{try{return await API[fn](...args)}catch(e){return{ok:false,error:String(e)}}};
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg,ico='✅',bad=false){
+  $('toastTxt').textContent=msg;$('toastIco').textContent=ico;
+  const t=$('toast');t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3400);
+}
+
+/* ---------- 果冻开关 ---------- */
+function jelly(el,onChange){
+  const input=el.querySelector('input');
+  el.addEventListener('pointerdown',()=>{
+    if(el.classList.contains('off-fade'))return;
+    el.classList.add('squish');
+  });
+  el.addEventListener('pointerup',()=>setTimeout(()=>el.classList.remove('squish'),140));
+  el.addEventListener('pointerleave',()=>el.classList.remove('squish'));
+  input.addEventListener('change',()=>{
+    el.classList.add('squish');setTimeout(()=>el.classList.remove('squish'),160);
+    onChange(input.checked);
+  });
+}
+
+/* ---------- 渲染 ---------- */
+function fmtT(s){ // ISO → 北京时间 MM-dd HH:mm
+  const d=new Date(s);if(isNaN(d))return s;
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function pill(html,cls){return `<span class="pill ${cls}">${html}</span>`}
+
+function renderWb(j){
+  if(!j){$('wbBal').innerHTML='<span style="color:var(--txt-faint)">—</span><small>积分</small>';$('wbSub').innerHTML=pill('未配置','idle');return;}
+  if(j.ok===false){$('wbBal').innerHTML='<span style="color:var(--red);font-size:20px">异常</span>';$('wbSub').innerHTML=pill('⚠ '+(j.checkin_msg||j.msg||'失败'),'off');return;}
+  $('wbBal').innerHTML=`${j.balance??'—'}<small>积分</small>`;
+  const parts=[];
+  parts.push(j.checkin==='claimed'?pill('✓ 今日已签 +'+(j.credit??''),'on'):j.checkin==='already'?pill('✓ 今日已签','on'):pill('签到异常','off'));
+  if(j.travel&&j.travel.available){
+    const t=j.travel;
+    if(t.state==='traveling')parts.push(pill(`🐱 ${t.location||'旅行中'} · 预计 +${t.reward??'?'}`,'idle'));
+    else if(t.depart&&t.depart!=='traveling'&&t.depart!=='daily_limit_reached')parts.push(pill('🐱 已派往 '+(typeof t.depart==='string'?t.depart:''),'idle'));
+  }
+  $('wbSub').innerHTML=parts.join(' ');
+}
+function renderTrae(j){
+  if(!j){$('trBal').innerHTML='<span style="color:var(--txt-faint)">—</span><small>积分</small>';$('trSub').innerHTML=pill('未配置','idle');return;}
+  if(j.ok===false){$('trBal').innerHTML='<span style="color:var(--red);font-size:20px">异常</span>';$('trSub').innerHTML=pill('⚠ '+(j.msg||'失败'),'off');return;}
+  $('trBal').innerHTML=`${j.credits??'—'}<small>积分</small>`;
+  $('trSub').innerHTML=j.checkin==='claimed'?pill('✓ 今日已签 +'+(j.claim_credits??''),'on')
+    :j.checkin==='already'?pill('✓ 今日已签','on'):pill('签到异常','off');
+}
+
+function renderRuns(d){
+  const box=$('runs');
+  if(!d.ok){box.innerHTML=`<div class="empty">读取失败：${d.error||''}</div>`;return;}
+  if(!d.runs.length){box.innerHTML='<div class="empty">还没有运行记录，点「☁ 云端跑一次」试试</div>';return;}
+  box.innerHTML=d.runs.map(r=>{
+    const cls=r.conclusion==='success'?'s':r.conclusion?'f':'r';
+    const ic=r.conclusion==='success'?'✔':r.conclusion?'✘':'…';
+    const lbl=r.conclusion==='success'?'成功':r.conclusion==='failure'?'失败':r.conclusion||r.status;
+    const wb=r.wb_state==='skipped'?'⏭ 跳过':r.wb?'✔':'—';
+    const tr=r.trae_state==='skipped'?'⏭ 跳过':r.trae?'✔':'—';
+    const det=[];
+    if(r.wb)det.push('WorkBuddy:\n'+JSON.stringify(r.wb,null,2));
+    if(r.trae)det.push('TraeWork:\n'+JSON.stringify(r.trae,null,2));
+    return `<div class="runrow glass" onclick="this.classList.toggle('open')">
+      <div class="rr-top">
+        <span class="rr-time">${fmtT(r.created)}</span>
+        <span class="rr-state ${cls}">${ic} ${lbl}</span>
+        ${r.event==='workflow_dispatch'?pill('手动','idle'):''}
+        <span class="rr-mini"><span>🎁 ${wb}</span><span>⚡ ${tr}</span></span>
+      </div>
+      ${det.length?`<div class="rr-detail"><pre>${det.join('\n\n').replace(/</g,'&lt;')}</pre></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function refreshRuns(){renderRuns(await call('get_runs'))}
+
+/* ---------- 启动流程 ---------- */
+async function boot(){
+  const r=await call('boot');
+  STATE=r;
+  $('connDot').className='dot '+(r.token_ok?'ok':'bad');
+  $('connTxt').textContent=r.token_ok?(r.owner+' / '+r.repo):'未连接';
+  if(r.configured){
+    $('hero').style.display='none';$('dash').style.display='block';
+    const wbOn=!(r.secrets.WB_ENABLED==='false'), trOn=!(r.secrets.TRAE_ENABLED==='false');
+    $('wbSw').querySelector('input').checked=wbOn&&!!r.secrets.WB_RT;
+    $('trSw').querySelector('input').checked=trOn&&!!r.secrets.TRAE_CREDS;
+    if(!r.secrets.WB_RT)$('wbSw').classList.add('off-fade');
+    if(!r.secrets.TRAE_CREDS)$('trSw').classList.add('off-fade');
+    const d=await call('get_runs');
+    if(d.ok){
+      const latest=d.runs.find(x=>x.conclusion);
+      renderWb(latest&&latest.wb);renderTrae(latest&&latest.trae);
+      RUNS_URL=d.url;
+    }else{renderWb(null);renderTrae(null);}
+    renderRuns(d);
+  }else{
+    $('runs').innerHTML='<div class="empty">配置完成后，这里会显示云端每日运行记录</div>';
+  }
+}
+
+/* ---------- 事件 ---------- */
+$('oneBtn').addEventListener('click',async()=>{
+  const b=$('oneBtn');b.disabled=true;
+  b.innerHTML='<span class="spin"></span> 正在配置…';
+  const steps=$('steps');steps.innerHTML='';steps.classList.add('show');
+  const addStep=(txt,warn)=>{const d=document.createElement('div');d.className='step-line'+(warn?' warn':'');
+    d.innerHTML=`<div class="tick">${warn?'!':'✓'}</div><span>${txt}</span>`;steps.appendChild(d);};
+  const r=await call('one_click');
+  (r.steps||[]).forEach(s=>addStep(...(s.startsWith('⚠')?[s,true]:[s,false])));
+  if(r.ok){
+    addStep('全部就绪！面板已开启');
+    toast('一键配置完成 🎉');
+    setTimeout(()=>{b.innerHTML='✓ 已开启';setTimeout(()=>location.reload(),900)},600);
+  }else{
+    addStep('失败：'+(r.error||'未知错误'),true);
+    b.disabled=false;b.innerHTML='🚀 重试一键开启';
+    toast(r.error||'配置失败','⚠️',true);
+  }
+});
+
+$('localBtn').addEventListener('click',async()=>{
+  const b=$('localBtn');b.disabled=true;const old=b.innerHTML;
+  b.innerHTML='<span class="spin"></span> 签到中…';
+  const r=await call('checkin_local');
+  b.disabled=false;b.innerHTML=old;
+  if(r.ok){
+    renderWb(r.wb);renderTrae(r.trae);
+    toast('本机签到完成 ✓（令牌已顺带续期）');
+  }else toast(r.error||'签到失败','⚠️',true);
+});
+
+$('cloudBtn').addEventListener('click',async()=>{
+  const b=$('cloudBtn');b.disabled=true;const old=b.innerHTML;
+  b.innerHTML='<span class="spin"></span> 触发中…';
+  const r=await call('dispatch_cloud');
+  b.disabled=false;b.innerHTML=old;
+  if(r.ok){toast('已触发云端运行，约 1 分钟后自动刷新');
+    $('runs').innerHTML='<div class="runrow glass"><div class="skel" style="width:55%;height:16px"></div></div>';
+    setTimeout(refreshRuns,50000);
+  }else toast(r.error||'触发失败','⚠️',true);
+});
+
+$('refreshBtn').addEventListener('click',async()=>{
+  const r=await call('get_runs');
+  if(r.ok){const latest=r.runs.find(x=>x.conclusion);
+    renderWb(latest&&latest.wb);renderTrae(latest&&latest.trae);renderRuns(r);
+    toast('已刷新');}
+  else toast(r.error||'刷新失败','⚠️',true);
+});
+
+jelly($('wbSw'),async on=>{
+  const r=await call('set_enabled','wb',on);
+  if(r.ok)toast(on?'WorkBuddy 云端签到已开启':'WorkBuddy 云端签到已暂停',on?'🟢':'⏸');
+  else{$('wbSw').querySelector('input').checked=!on;toast(r.error||'操作失败','⚠️',true);}
+});
+jelly($('trSw'),async on=>{
+  const r=await call('set_enabled','trae',on);
+  if(r.ok)toast(on?'TraeWork 云端签到已开启':'TraeWork 云端签到已暂停',on?'🟢':'⏸');
+  else{$('trSw').querySelector('input').checked=!on;toast(r.error||'操作失败','⚠️',true);}
+});
+
+$('openGh').addEventListener('click',()=>RUNS_URL&&call('open_url',RUNS_URL));
+$('setBtn').addEventListener('click',()=>$('mask').classList.add('show'));
+$('setCancel').addEventListener('click',()=>$('mask').classList.remove('show'));
+$('mask').addEventListener('click',e=>{if(e.target.id==='mask')$('mask').classList.remove('show')});
+$('setSave').addEventListener('click',async()=>{
+  const v=$('tokenInput').value.trim();
+  if(!v){$('mask').classList.remove('show');return;}
+  const b=$('setSave');b.disabled=true;b.innerHTML='<span class="spin"></span>';
+  const r=await call('save_token',v);
+  b.disabled=false;b.innerHTML='保存';
+  if(r.ok){toast('已连接 '+r.owner);setTimeout(()=>location.reload(),700);}
+  else toast(r.error||'Token 无效','⚠️',true);
+});
+
+ready().then(boot);
+</script>
+</body>
+</html>
