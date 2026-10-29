@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: gh secret set WB_RT --body-file wb_new_rt.txt
+        run: gh secret set WB_RT < wb_new_rt.txt
 
   traework:
     name: TraeWork 签到
@@ -52,7 +52,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: gh secret set TRAE_CREDS --body-file trae_new_creds.json
+        run: gh secret set TRAE_CREDS < trae_new_creds.json
 
   # GitHub 会停用「60 天无提交」仓库的定时任务，这里在每天第一次运行时提交一条记录保持活跃
   keepalive:
