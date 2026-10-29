@@ -2,7 +2,7 @@ name: daily-checkin
 
 on:
   schedule:
-    # GitHub Actions 的 cron 使用 UTC。下面三个时间分别对应北京时间的 06:20 / 09:10 / 13:30
+    # GitHub Actions 的 cron 用 UTC。下面三个时间分别对应北京时间 06:20 / 09:10 / 13:30
     - cron: '20 22 * * *'
     - cron: '10 1 * * *'
     - cron: '30 5 * * *'
@@ -26,6 +26,13 @@ jobs:
         env:
           WB_RT: ${{ secrets.WB_RT }}
         run: python checkin_wb.py
+      # 服务端每次刷新都会下发新的长效令牌，写回 Secret 实现滚动续期（未配置 GH_PAT 则跳过）
+      - name: 写回新的 WB_RT
+        if: always() && hashFiles('wb_new_rt.txt') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: gh secret set WB_RT --body-file wb_new_rt.txt
 
   traework:
     name: TraeWork 签到
@@ -40,3 +47,32 @@ jobs:
         env:
           TRAE_CREDS: ${{ secrets.TRAE_CREDS }}
         run: python checkin_trae.py
+      - name: 写回新的 TRAE_CREDS
+        if: always() && hashFiles('trae_new_creds.json') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: gh secret set TRAE_CREDS --body-file trae_new_creds.json
+
+  # GitHub 会停用「60 天无提交」仓库的定时任务，这里在每天第一次运行时提交一条记录保持活跃
+  keepalive:
+    name: 记录运行 + 保持仓库活跃
+    runs-on: ubuntu-latest
+    needs: [workbuddy, traework]
+    if: always() && github.event.schedule == '20 22 * * *'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 写入运行记录
+        run: |
+          mkdir -p history
+          echo "$(date -u +'%Y-%m-%d %H:%M') UTC  daily-checkin 运行一次" >> history/run.log
+          tail -n 120 history/run.log > /tmp/run.log && mv /tmp/run.log history/run.log
+      - name: 提交
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: keepalive $(date -u +'%Y-%m-%d')"
+          git push
