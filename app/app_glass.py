@@ -170,10 +170,27 @@ class Api:
             out["WB_RT"] = new_rt or rt
         else:
             out["WB_RT"] = ""
-        creds, _name = wbcreds.trae_creds()
+        # Trae：优先用本 App 自己维护的令牌链（避免客户端没打开、storage 里的旧环已失效）
+        chain = os.path.join(CONFIG_DIR, "trae_chain.json")
+        creds = None
+        if os.path.isfile(chain):
+            try:
+                creds = json.load(io.open(chain, encoding="utf-8"))
+            except Exception:
+                creds = None
+        if not creds:
+            creds, _name = wbcreds.trae_creds()
         out["TRAE_CREDS"] = json.dumps(creds, ensure_ascii=False) if creds else ""
         self.creds = out
         return out
+
+    def _save_chain(self, creds_json):
+        try:
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            with io.open(os.path.join(CONFIG_DIR, "trae_chain.json"), "w", encoding="utf-8") as f:
+                f.write(creds_json)
+        except Exception:
+            pass
 
     # ---------- JS API ----------
     def boot(self):
@@ -252,12 +269,14 @@ class Api:
             return {"ok": False, "error": str(e)}
 
     def checkin_local(self):
-        """本机直签（幂等），返回两个平台的 JSON 结果。"""
+        """本机直签（幂等），返回两个平台的 JSON 结果；轮换出的新令牌会同步回 Secret，
+        避免本机与云端各持一环、互相把对方刷废。"""
         res = {}
         try:
             self._extract_creds()
         except Exception as e:
             return {"ok": False, "error": "凭据提取失败：%s" % e}
+        rotated = {}
         if self.creds.get("WB_RT"):
             try:
                 code, txt, extra = _run_module(
@@ -267,6 +286,7 @@ class Api:
                 res["wb"]["_code"] = code
                 if "wb_new_rt.txt" in extra:
                     self.creds["WB_RT"] = extra["wb_new_rt.txt"]
+                    rotated["WB_RT"] = extra["wb_new_rt.txt"]
             except Exception as e:
                 res["wb"] = {"ok": False, "error": str(e)}
         if self.creds.get("TRAE_CREDS"):
@@ -278,8 +298,19 @@ class Api:
                 res["trae"]["_code"] = code
                 if "trae_new_creds.json" in extra:
                     self.creds["TRAE_CREDS"] = extra["trae_new_creds.json"]
+                    rotated["TRAE_CREDS"] = extra["trae_new_creds.json"]
+                    self._save_chain(extra["trae_new_creds.json"])
             except Exception as e:
                 res["trae"] = {"ok": False, "error": str(e)}
+        # 轮换回写：保证云端用的是最新一环
+        if rotated:
+            try:
+                token, owner, repo = self._ctx()
+                for name, val in rotated.items():
+                    ghapi.set_secret(token, owner, repo, name, val)
+                res["_synced"] = list(rotated.keys())
+            except Exception as e:
+                res["_sync_error"] = str(e)
         res["ok"] = bool(res.get("wb", {}).get("ok") or res.get("trae", {}).get("ok"))
         return res
 
@@ -288,6 +319,23 @@ class Api:
             token, owner, repo = self._ctx()
             ghapi.dispatch(token, owner, repo)
             return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def sync_trae(self):
+        """从本机 TraeWork 客户端重新提取令牌，**验证有效后**再写入 Secret。"""
+        try:
+            token, owner, repo = self._ctx()
+            creds, name = wbcreds.trae_creds()
+            if not creds:
+                return {"ok": False, "error": "本机未找到 TraeWork 登录态，请先打开客户端登录一次"}
+            ok, latest, err = self._validate_trae(json.dumps(creds, ensure_ascii=False))
+            if not ok:
+                return {"ok": False, "error": err}
+            ghapi.set_secret(token, owner, repo, "TRAE_CREDS", latest)
+            ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "true")
+            self._save_chain(latest)
+            return {"ok": True, "source": name}
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
@@ -313,7 +361,15 @@ class Api:
                 except Exception:
                     pass
                 out.append(item)
-            return {"ok": True, "runs": out,
+            # 自动修复：Trae 令牌链被客户端刷新打断时，自动从本地重新同步一次
+            healed = None
+            latest = next((x for x in out if x["conclusion"]), None)
+            if latest and latest.get("trae") and latest["trae"].get("ok") is False:
+                msg = str(latest["trae"].get("msg", ""))
+                if "20101" in msg or "invalid" in msg.lower():
+                    r = self.sync_trae()
+                    healed = {"ok": r.get("ok"), "error": r.get("error")}
+            return {"ok": True, "runs": out, "healed": healed,
                     "url": "https://github.com/%s/%s/actions" % (owner, repo)}
         except Exception as e:
             return {"ok": False, "error": str(e), "runs": []}
