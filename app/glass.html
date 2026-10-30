@@ -369,9 +369,11 @@ function pill(html,cls){return `<span class="pill ${cls}">${html}</span>`}
 function renderWb(j){
   if(!j){$('wbBal').innerHTML='<span style="color:var(--txt-faint)">—</span><small>积分</small>';$('wbSub').innerHTML=pill('未配置','idle');return;}
   if(j.ok===false){$('wbBal').innerHTML='<span style="color:var(--red);font-size:20px">异常</span>';$('wbSub').innerHTML=pill('⚠ '+(j.checkin_msg||j.msg||'失败'),'off');return;}
-  $('wbBal').innerHTML=`${j.balance??'—'}<small>积分</small>`;
+  const total=(j.activity_total??j.balance);
+  $('wbBal').innerHTML=`${total??'—'}<small>活动累计</small>`;
   const parts=[];
-  parts.push(j.checkin==='claimed'?pill('✓ 今日已签 +'+(j.credit??''),'on'):j.checkin==='already'?pill('✓ 今日已签','on'):pill('签到异常','off'));
+  parts.push(j.checkin==='claimed'?pill('✓ 今日已签 +'+(j.credit??j.today_credit??''),'on'):j.checkin==='already'?pill('✓ 今日已签','on'):pill('签到异常','off'));
+  if(j.streak)parts.push(pill('🔥 连签 '+j.streak+' 天','idle'));
   if(j.travel&&j.travel.available){
     const t=j.travel;
     if(t.state==='traveling')parts.push(pill(`🐱 ${t.location||'旅行中'} · 预计 +${t.reward??'?'}`,'idle'));
@@ -440,7 +442,7 @@ async function boot(){
   $('connTxt').textContent=r.token_ok?(r.owner+' / '+r.repo):'未连接';
   if(r.configured){
     $('hero').style.display='none';$('dash').style.display='block';
-    const wbOn=!(r.secrets.WB_ENABLED==='false'), trOn=!(r.secrets.TRAE_ENABLED==='false');
+    const wbOn=(r.secrets.WB_ENABLED!=='PAUSED'), trOn=(r.secrets.TRAE_ENABLED!=='PAUSED');
     $('wbSw').querySelector('input').checked=wbOn&&!!r.secrets.WB_RT;
     $('trSw').querySelector('input').checked=trOn&&!!r.secrets.TRAE_CREDS;
     if(!r.secrets.WB_RT)$('wbSw').classList.add('off-fade');
