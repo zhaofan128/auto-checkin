@@ -289,20 +289,8 @@ class Api:
                     rotated["WB_RT"] = extra["wb_new_rt.txt"]
             except Exception as e:
                 res["wb"] = {"ok": False, "error": str(e)}
-        if self.creds.get("TRAE_CREDS"):
-            try:
-                code, txt, extra = _run_module(
-                    os.path.join(base_dir(), "runners", "checkin_trae.py"),
-                    {"TRAE_CREDS": self.creds["TRAE_CREDS"]})
-                res["trae"] = _parse_json_line(txt) or {"ok": False, "raw": txt[-200:]}
-                res["trae"]["_code"] = code
-                if "trae_new_creds.json" in extra:
-                    self.creds["TRAE_CREDS"] = extra["trae_new_creds.json"]
-                    rotated["TRAE_CREDS"] = extra["trae_new_creds.json"]
-                    self._save_chain(extra["trae_new_creds.json"])
-            except Exception as e:
-                res["trae"] = {"ok": False, "error": str(e)}
-        # 轮换回写：保证云端用的是最新一环
+        # Trae 的刷新令牌是「单向链」：同一账号只允许最新一环有效，
+        # 本机和云端同时轮换会互相把对方刷废 —— 因此 Trae 统一交给云端执行，本机只签 WorkBuddy。
         if rotated:
             try:
                 token, owner, repo = self._ctx()
@@ -311,6 +299,7 @@ class Api:
                 res["_synced"] = list(rotated.keys())
             except Exception as e:
                 res["_sync_error"] = str(e)
+        res["_note"] = "TraeWork 由云端执行（本机与云端同时轮换会互相废掉令牌）"
         res["ok"] = bool(res.get("wb", {}).get("ok") or res.get("trae", {}).get("ok"))
         return res
 
