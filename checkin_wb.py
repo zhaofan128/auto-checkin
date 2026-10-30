@@ -107,6 +107,10 @@ def main():
     d = body.get("data") if isinstance(body, dict) else {}
     d = d if isinstance(d, dict) else {}
     out["balance"] = d.get("total_credits") or d.get("balance")
+    out["activity_total"] = d.get("total_credits")
+    out["streak"] = d.get("streak_days")
+    out["today_credit"] = d.get("today_credit")
+    out["daily_credit"] = d.get("daily_credit")
     if d.get("today_checked_in") is True:
         out["checkin"] = "already"
     else:
