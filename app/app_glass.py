@@ -97,6 +97,55 @@ class Api:
         self.cfg = load_config()
         self.creds = {}
 
+    # ---------- 凭据校验（顺带轮换，保证写进 Secret 的是最新一份） ----------
+    def _validate_wb(self, rt):
+        """返回 (可用?, 最新令牌或None, 错误说明)。"""
+        if not rt:
+            return False, None, "本机未找到 WorkBuddy 令牌"
+        try:
+            new_rt, err = wbcreds.wb_refresh(rt)
+            if new_rt:
+                return True, new_rt, ""
+            return False, None, "WorkBuddy 令牌失效：%s（请在 WorkBuddy 客户端重新登录）" % err
+        except Exception as e:
+            return False, None, "WorkBuddy 令牌校验失败：%s" % e
+
+    def _trae_module(self):
+        path = os.path.join(base_dir(), "runners", "checkin_trae.py")
+        spec = importlib.util.spec_from_file_location("trae_probe_%d" % id(path), path)
+        mod = importlib.util.module_from_spec(spec)
+        return spec, mod
+
+    def _validate_trae(self, creds_json):
+        """尝试续期一次；成功则返回 (True, 轮换后的最新 creds json, "")。"""
+        if not creds_json:
+            return False, None, "本机未找到 TraeWork 登录态"
+        tmp = tempfile.mkdtemp(prefix="trae-probe-")
+        out_file = os.path.join(tmp, "trae_new_creds.json")
+        old = {k: os.environ.get(k) for k in ("TRAE_CREDS", "TRAE_NEW_CREDS_FILE")}
+        try:
+            os.environ["TRAE_CREDS"] = creds_json
+            os.environ["TRAE_NEW_CREDS_FILE"] = out_file
+            spec, mod = self._trae_module()
+            spec.loader.exec_module(mod)
+            token, note = mod.refresh()
+            if token:
+                if os.path.isfile(out_file):
+                    return True, io.open(out_file, encoding="utf-8").read().strip(), ""
+                return True, creds_json, ""
+            msg = str(note)
+            if "20101" in msg or "invalid" in msg.lower():
+                return False, None, "TraeWork 令牌已被客户端轮换失效，请在 TraeWork 里重新登录一次"
+            return False, None, "TraeWork 续期失败：%s" % msg[:120]
+        except Exception as e:
+            return False, None, "TraeWork 校验异常：%s" % e
+        finally:
+            for k, v in old.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
     # ---------- 内部 ----------
     def _token(self):
         return (self.cfg.get("token") or "").strip()
@@ -157,7 +206,7 @@ class Api:
         return res
 
     def one_click(self):
-        """一键开启：提取本机凭据 → 写入全部 Secrets（含开关默认开）。"""
+        """一键开启：提取 → 校验/续期 → 写入 Secrets（含开关默认开）。"""
         steps = []
         try:
             token, owner, repo = self._ctx()
@@ -168,27 +217,29 @@ class Api:
             creds = self._extract_creds()
         except Exception as e:
             return {"ok": False, "steps": steps, "error": "凭据提取失败：%s" % e}
-        wb_ok = bool(creds.get("WB_RT"))
-        trae_ok = bool(creds.get("TRAE_CREDS"))
+
+        wb_ok, wb_rt, wb_err = self._validate_wb(creds.get("WB_RT"))
+        trae_ok, trae_creds, trae_err = self._validate_trae(creds.get("TRAE_CREDS"))
+
         try:
             if wb_ok:
-                ghapi.set_secret(token, owner, repo, "WB_RT", creds["WB_RT"])
+                ghapi.set_secret(token, owner, repo, "WB_RT", wb_rt)
                 ghapi.set_secret(token, owner, repo, "WB_ENABLED", "true")
-                steps.append("WorkBuddy 凭据已写入（令牌顺带续期 30 天）")
+                steps.append("WorkBuddy 令牌有效，已写入（顺带续期 30 天）")
             else:
-                steps.append("⚠ 未找到 WorkBuddy 令牌（客户端没登录？已跳过）")
+                steps.append("⚠ %s" % wb_err)
             if trae_ok:
-                ghapi.set_secret(token, owner, repo, "TRAE_CREDS", creds["TRAE_CREDS"])
+                ghapi.set_secret(token, owner, repo, "TRAE_CREDS", trae_creds)
                 ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "true")
-                steps.append("TraeWork 凭据已写入")
+                steps.append("TraeWork 令牌有效，已写入（已轮换为最新一份）")
             else:
-                steps.append("⚠ 未找到 TraeWork 登录态（客户端没登录？已跳过）")
+                steps.append("⚠ %s" % trae_err)
             ghapi.set_secret(token, owner, repo, "GH_PAT", token)
             steps.append("自动轮换密钥已配置")
         except Exception as e:
             return {"ok": False, "steps": steps, "error": "写入 Secrets 失败：%s" % e}
-        return {"ok": wb_ok or trae_ok, "steps": steps,
-                "wb": wb_ok, "trae": trae_ok}
+        return {"ok": wb_ok and trae_ok, "steps": steps, "wb": wb_ok, "trae": trae_ok,
+                "partial": (wb_ok != trae_ok)}
 
     def set_enabled(self, platform, enabled):
         """果冻开关回调：WB / TRAE 的云端启停。"""
