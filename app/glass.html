@@ -487,8 +487,9 @@ $('localBtn').addEventListener('click',async()=>{
   const r=await call('checkin_local');
   b.disabled=false;b.innerHTML=old;
   if(r.ok){
-    renderWb(r.wb);renderTrae(r.trae);
-    toast('本机签到完成 ✓（令牌已顺带续期）');
+    if(r.wb)renderWb(r.wb);
+    if(r.trae)renderTrae(r.trae);
+    toast(r._note?'WorkBuddy 已签到 ✓（Trae 交给云端，避免令牌互抢）':'本机签到完成 ✓（令牌已顺带续期）');
   }else toast(r.error||'签到失败','⚠️',true);
 });
 
