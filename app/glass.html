@@ -381,7 +381,17 @@ function renderWb(j){
 }
 function renderTrae(j){
   if(!j){$('trBal').innerHTML='<span style="color:var(--txt-faint)">—</span><small>积分</small>';$('trSub').innerHTML=pill('未配置','idle');return;}
-  if(j.ok===false){$('trBal').innerHTML='<span style="color:var(--red);font-size:20px">异常</span>';$('trSub').innerHTML=pill('⚠ '+(j.msg||'失败'),'off');return;}
+  if(j.ok===false){
+    const m=String(j.msg||j.error||'失败');
+    if(/20101|invalid/i.test(m)){
+      $('trBal').innerHTML='<span style="color:var(--red);font-size:20px">令牌失效</span>';
+      $('trSub').innerHTML=`<span class="pill off" style="cursor:pointer" id="syncTraePill">⟳ 点此同步本机令牌</span>`;
+      setTimeout(()=>{const p=$('syncTraePill');if(p)p.onclick=doSyncTrae;},0);
+      return;
+    }
+    $('trBal').innerHTML='<span style="color:var(--red);font-size:20px">异常</span>';
+    $('trSub').innerHTML=pill('⚠ '+m.slice(0,28),'off');return;
+  }
   $('trBal').innerHTML=`${j.credits??'—'}<small>积分</small>`;
   $('trSub').innerHTML=j.checkin==='claimed'?pill('✓ 今日已签 +'+(j.claim_credits??''),'on')
     :j.checkin==='already'?pill('✓ 今日已签','on'):pill('签到异常','off');
@@ -412,7 +422,15 @@ function renderRuns(d){
   }).join('');
 }
 
-async function refreshRuns(){renderRuns(await call('get_runs'))}
+async function refreshRuns(){const d=await call('get_runs');renderRuns(d);return d}
+
+async function doSyncTrae(){
+  toast('正在从本机同步 TraeWork 令牌…','🔄');
+  const r=await call('sync_trae');
+  if(r.ok){toast('已同步到云端，稍后自动重试签到','✅');setTimeout(()=>{call('dispatch_cloud');toast('已触发云端重试','☁️');},800);}
+  else toast(r.error||'同步失败','⚠️',true);
+  return r;
+}
 
 /* ---------- 启动流程 ---------- */
 async function boot(){
@@ -432,6 +450,10 @@ async function boot(){
       const latest=d.runs.find(x=>x.conclusion);
       renderWb(latest&&latest.wb);renderTrae(latest&&latest.trae);
       RUNS_URL=d.url;
+      if(d.healed){
+        setTimeout(()=>toast(d.healed.ok?'TraeWork 令牌已自动同步（客户端刷新过），下次运行即可恢复':'TraeWork 令牌失效，请在客户端重新登录后点「同步」',
+                            d.healed.ok?'🩹':'⚠️', !d.healed.ok),1200);
+      }
     }else{renderWb(null);renderTrae(null);}
     renderRuns(d);
   }else{
