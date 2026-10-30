@@ -241,13 +241,13 @@ class Api:
         try:
             if wb_ok:
                 ghapi.set_secret(token, owner, repo, "WB_RT", wb_rt)
-                ghapi.set_secret(token, owner, repo, "WB_ENABLED", "true")
+                ghapi.set_secret(token, owner, repo, "WB_ENABLED", "ACTIVE")
                 steps.append("WorkBuddy 令牌有效，已写入（顺带续期 30 天）")
             else:
                 steps.append("⚠ %s" % wb_err)
             if trae_ok:
                 ghapi.set_secret(token, owner, repo, "TRAE_CREDS", trae_creds)
-                ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "true")
+                ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "ACTIVE")
                 steps.append("TraeWork 令牌有效，已写入（已轮换为最新一份）")
             else:
                 steps.append("⚠ %s" % trae_err)
@@ -263,7 +263,7 @@ class Api:
         try:
             token, owner, repo = self._ctx()
             name = ("WB_ENABLED" if platform == "wb" else "TRAE_ENABLED")
-            ghapi.set_secret(token, owner, repo, name, "true" if enabled else "false")
+            ghapi.set_secret(token, owner, repo, name, "ACTIVE" if enabled else "PAUSED")
             return {"ok": True}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -322,7 +322,7 @@ class Api:
             if not ok:
                 return {"ok": False, "error": err}
             ghapi.set_secret(token, owner, repo, "TRAE_CREDS", latest)
-            ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "true")
+            ghapi.set_secret(token, owner, repo, "TRAE_ENABLED", "ACTIVE")
             self._save_chain(latest)
             return {"ok": True, "source": name}
         except Exception as e:
