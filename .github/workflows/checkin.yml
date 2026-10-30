@@ -25,15 +25,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # App 里的开关把 WB_ENABLED 置为 'false' 时跳过本平台
+      # App 里的开关把 WB_ENABLED 置为 'PAUSED' 时跳过本平台
       - name: Run checkin
-        if: ${{ env.WB_ON != 'false' }}
+        if: ${{ env.WB_ON != 'PAUSED' }}
         env:
           WB_RT: ${{ secrets.WB_RT }}
         run: python checkin_wb.py
       # 服务端每次刷新都会下发新的长效令牌，写回 Secret 实现滚动续期（未配置 GH_PAT 则跳过）
       - name: 写回新的 WB_RT
-        if: ${{ !cancelled() && env.WB_ON != 'false' && hashFiles('wb_new_rt.txt') != '' }}
+        if: ${{ !cancelled() && env.WB_ON != 'PAUSED' && hashFiles('wb_new_rt.txt') != '' }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -51,12 +51,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run checkin
-        if: ${{ env.TRAE_ON != 'false' }}
+        if: ${{ env.TRAE_ON != 'PAUSED' }}
         env:
           TRAE_CREDS: ${{ secrets.TRAE_CREDS }}
         run: python checkin_trae.py
       - name: 写回新的 TRAE_CREDS
-        if: ${{ !cancelled() && env.TRAE_ON != 'false' && hashFiles('trae_new_creds.json') != '' }}
+        if: ${{ !cancelled() && env.TRAE_ON != 'PAUSED' && hashFiles('trae_new_creds.json') != '' }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
