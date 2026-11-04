@@ -328,6 +328,25 @@ class Api:
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
+    def live_wb(self):
+        """实时查询 WorkBuddy 当前状态（只读，不补签），并把轮换后的令牌写回本地。"""
+        data, new_rt, err = wbcreds.wb_status()
+        if new_rt:
+            try:
+                p = os.path.join(os.path.expanduser("~"), ".workbuddy", "checkin-rt.json")
+                os.makedirs(os.path.dirname(p), exist_ok=True)
+                with io.open(p, "w", encoding="utf-8") as f:
+                    json.dump({"rt": new_rt}, f)
+            except Exception:
+                pass
+        if not data:
+            return {"ok": False, "error": err}
+        return {"ok": True,
+                "activity_total": data.get("total_credits"),
+                "streak": data.get("streak_days"),
+                "today_credit": data.get("today_credit"),
+                "checked_in": data.get("today_checked_in")}
+
     def get_runs(self):
         """云端最近运行 + 每次两个平台的 JSON 结果摘要。"""
         try:
