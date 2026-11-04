@@ -452,6 +452,12 @@ async function boot(){
       const latest=d.runs.find(x=>x.conclusion);
       renderWb(latest&&latest.wb);renderTrae(latest&&latest.trae);
       RUNS_URL=d.url;
+      const live=await call('live_wb');
+      if(live&&live.ok){
+        renderWb({ok:true, activity_total:live.activity_total, streak:live.streak,
+                  today_credit:live.today_credit, checkin:live.checked_in?'already':'pending',
+                  travel:(latest&&latest.wb)?latest.wb.travel:null});
+      }
       if(d.healed){
         setTimeout(()=>toast(d.healed.ok?'TraeWork 令牌已自动同步（客户端刷新过），下次运行即可恢复':'TraeWork 令牌失效，请在客户端重新登录后点「同步」',
                             d.healed.ok?'🩹':'⚠️', !d.healed.ok),1200);
@@ -510,7 +516,11 @@ $('refreshBtn').addEventListener('click',async()=>{
   const r=await call('get_runs');
   if(r.ok){const latest=r.runs.find(x=>x.conclusion);
     renderWb(latest&&latest.wb);renderTrae(latest&&latest.trae);renderRuns(r);
-    toast('已刷新');}
+    const live=await call('live_wb');
+    if(live&&live.ok){renderWb({ok:true,activity_total:live.activity_total,streak:live.streak,
+      today_credit:live.today_credit,checkin:live.checked_in?'already':'pending',
+      travel:(latest&&latest.wb)?latest.wb.travel:null});}
+    toast('已刷新（实时数据）');}
   else toast(r.error||'刷新失败','⚠️',true);
 });
 
