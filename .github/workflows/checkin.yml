@@ -40,7 +40,8 @@ jobs:
         run: gh secret set WB_RT < wb_new_rt.txt
 
   traework:
-    name: TraeWork 签到    runs-on: ubuntu-latest
+    name: TraeWork 签到
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       TRAE_ON: ${{ secrets.TRAE_ENABLED }}
