@@ -40,8 +40,7 @@ jobs:
         run: gh secret set WB_RT < wb_new_rt.txt
 
   traework:
-    name: TraeWork 签到
-    runs-on: ubuntu-latest
+    name: TraeWork 签到    runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       TRAE_ON: ${{ secrets.TRAE_ENABLED }}
@@ -62,11 +61,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: gh secret set TRAE_CREDS < trae_new_creds.json
 
+  qoder:
+    name: Qoder 每日签到
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QODER_ON: ${{ secrets.QODER_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run checkin
+        if: ${{ env.QODER_ON != 'PAUSED' }}
+        env:
+          QODER_CN_TOKEN: ${{ secrets.QODER_CN_TOKEN }}
+          QODER_GLOBAL_TOKEN: ${{ secrets.QODER_GLOBAL_TOKEN }}
+        run: python checkin_qoder.py
+
   # GitHub 会停用「60 天无提交」仓库的定时任务，这里在每天第一次运行时提交一条记录保持活跃
   keepalive:
     name: 记录运行 + 保持仓库活跃
     runs-on: ubuntu-latest
-    needs: [workbuddy, traework]
+    needs: [workbuddy, traework, qoder]
     if: ${{ !cancelled() && github.event.schedule == '20 22 * * *' }}
     permissions:
       contents: write
