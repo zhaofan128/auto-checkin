@@ -243,3 +243,32 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+def wb_status():
+    """查询 WorkBuddy 实时状态（会顺带轮换令牌）。返回 (data, new_rt, err)。"""
+    rt = wb_rt()
+    if not rt:
+        return None, None, "本机未找到 WorkBuddy 令牌"
+    try:
+        req = urllib.request.Request(
+            "https://copilot.tencent.com/v2/plugin/auth/token/refresh",
+            data=b"{}", method="POST")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("X-Refresh-Token", rt)
+        req.add_header("X-Auth-Refresh-Source", "plugin")
+        req.add_header("X-Domain", "copilot.tencent.com")
+        res = json.loads(urllib.request.urlopen(req, timeout=25).read().decode("utf-8", "replace"))
+        if res.get("code") != 0:
+            return None, None, res.get("msg") or "刷新失败"
+        d = res.get("data") or {}
+        at = d.get("accessToken")
+        new_rt = d.get("refreshToken") or rt
+        req2 = urllib.request.Request(
+            "https://www.codebuddy.cn/v2/billing/meter/checkin-activity-status",
+            data=b"{}", method="POST")
+        req2.add_header("Authorization", "Bearer " + at)
+        req2.add_header("Content-Type", "application/json")
+        body = json.loads(urllib.request.urlopen(req2, timeout=25).read().decode("utf-8", "replace"))
+        return (body.get("data") or {}), new_rt, None
+    except Exception as e:
+        return None, None, str(e)
