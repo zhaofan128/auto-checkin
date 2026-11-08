@@ -116,10 +116,13 @@ def main():
         return 1
 
     slot = d.get("data") or {}
-    code = slot.get("activityCode") or ""
-    rev = slot.get("configRevision")
-    if slot.get("slotState") != "available" or not code:
-        print(json.dumps({"ok": True, "state": "inactive", "slotState": slot.get("slotState"), "rotated": rotated}, ensure_ascii=False))
+    # 实际响应把活动信息嵌在 data.activity 下（顶层同名键作为兼容兜底）
+    act = slot.get("activity") or {}
+    code = act.get("activityCode") or slot.get("activityCode") or ""
+    rev = act.get("configRevision") if act.get("configRevision") is not None else slot.get("configRevision")
+    slot_state = slot.get("slotState") or act.get("slotState")
+    if slot_state != "available" or not code:
+        print(json.dumps({"ok": True, "state": "inactive", "slotState": slot_state, "rotated": rotated}, ensure_ascii=False))
         return 0
 
     # 2) 上下文
@@ -128,8 +131,12 @@ def main():
         print(json.dumps({"ok": False, "stage": "context", "msg": "HTTP %s %s" % (st, str(d)[:160])}, ensure_ascii=False))
         return 1
     ctx = d.get("data") or {}
-    if ctx.get("claimedToday"):
-        print(json.dumps({"ok": True, "state": "already", "rotated": rotated}, ensure_ascii=False))
+    state = ctx.get("state") or {}
+    claimed = ctx.get("claimedToday")
+    if claimed is None:
+        claimed = state.get("claimedToday")
+    if claimed:
+        print(json.dumps({"ok": True, "state": "already", "credit": state.get("rewardCredits"), "rotated": rotated}, ensure_ascii=False))
         return 0
     if "check_in" not in (ctx.get("actions") or []):
         print(json.dumps({"ok": True, "state": "inactive", "rotated": rotated}, ensure_ascii=False))
