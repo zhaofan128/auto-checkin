@@ -103,6 +103,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: gh secret set MM_CREDS < mm_new_creds.json
 
+  lobsterai:
+    name: LobsterAI 每日签到
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      LOBSTER_ON: ${{ secrets.LOBSTER_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run checkin
+        if: ${{ env.LOBSTER_ON != 'PAUSED' }}
+        env:
+          LOBSTER_CREDS: ${{ secrets.LOBSTER_CREDS }}
+        run: python checkin_lobsterai.py
+      - name: 写回新的 LOBSTER_CREDS
+        if: ${{ !cancelled() && env.LOBSTER_ON != 'PAUSED' && hashFiles('lobster_new_creds.json') != '' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: gh secret set LOBSTER_CREDS < lobster_new_creds.json
+
   # GitHub 会停用「60 天无提交」仓库的定时任务，这里在每天第一次运行时提交一条记录保持活跃
   keepalive:
     name: 记录运行 + 保持仓库活跃
