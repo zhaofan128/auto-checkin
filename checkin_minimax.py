@@ -83,13 +83,25 @@ def main():
     rotated = False
     st, d = signin_status(tok)
     if st == 401:
-        # ⚠️ 刻意**不在这里刷新**：MiniMax 的 refresh_token 是单链的，
-        # 云端刷新会把本机 DSH/客户端的令牌顶掉（反之亦然）。
-        # access_token 本身有效期约 40 天，过期后重新同步一次即可。
-        print(json.dumps({"ok": False, "stage": "auth",
-                          "msg": "access_token 已过期，请重新授权后同步（云端不刷新以免顶掉本机令牌）"},
-                         ensure_ascii=False))
-        return 4
+        # 云端持有**专属**授权链（独立设备码授权），可以安全滚动续期，
+        # 不会影响本机 DSH / 客户端的会话。
+        rt = creds.get("refresh_token") or ""
+        if not rt:
+            print(json.dumps({"ok": False, "stage": "auth",
+                              "msg": "access_token 过期且无 refresh_token，请重新授权"}, ensure_ascii=False))
+            return 4
+        new_creds, err = refresh(rt)
+        if not new_creds:
+            print(json.dumps({"ok": False, "stage": "auth", "msg": "续期失败: %s" % err}, ensure_ascii=False))
+            return 4
+        try:
+            with open(os.environ.get("MM_NEW_CREDS_FILE", "mm_new_creds.json"), "w", encoding="utf-8") as f:
+                json.dump(new_creds, f, ensure_ascii=False)
+        except Exception:
+            pass
+        tok = new_creds["access_token"]
+        rotated = True
+        st, d = signin_status(tok)
 
     if st != 200 or not isinstance(d, dict):
         print(json.dumps({"ok": False, "stage": "status", "msg": "HTTP %s %s" % (st, str(d)[:160])}, ensure_ascii=False))
