@@ -80,6 +80,13 @@ jobs:
           QODER_CN_TOKEN: ${{ secrets.QODER_CN_TOKEN }}
           QODER_GLOBAL_TOKEN: ${{ secrets.QODER_GLOBAL_TOKEN }}
         run: python checkin_qoder.py
+      # 每次运行都会轮换 refresh token，写回 Secret 实现滚动续期（未配置 GH_PAT 则跳过）
+      - name: 写回新的 QODER_CN_TOKEN
+        if: ${{ !cancelled() && env.QODER_ON != 'PAUSED' && hashFiles('qoder_new_token.txt') != '' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: gh secret set QODER_CN_TOKEN < qoder_new_token.txt
 
   minimax:
     name: MiniMax Code 每日签到
