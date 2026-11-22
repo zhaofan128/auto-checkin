@@ -83,6 +83,9 @@ class EventLogger:
             source="api_unavailable",
             message="平台未返回积分结果",
         )
+        message = result.message
+        if points.message and points.message not in message:
+            message = f"{message}；{points.message}"
         event = CheckinEvent(
             schema_version=1,
             timestamp=self._clock().isoformat(timespec="seconds"),
@@ -96,7 +99,7 @@ class EventLogger:
             points_current=points.current,
             points_unit=points.unit,
             points_source=points.source,
-            message=redact_text(result.message),
+            message=redact_text(message),
             error_type=result.error_type,
             error_detail=redact_text(result.error_detail) if result.error_detail else None,
             duration_ms=result.duration_ms,
