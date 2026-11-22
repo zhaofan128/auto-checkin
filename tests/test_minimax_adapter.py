@@ -70,6 +70,20 @@ def test_minimax_already_checked_does_not_fake_gained(tmp_path):
     assert result.points.source == "api_unavailable"
 
 
+def test_minimax_resolve_does_not_overwrite_refreshed_token(tmp_path):
+    http = FakeHttp(lambda method, url, **kwargs: response({}))
+    ctx = make_context(
+        tmp_path,
+        http,
+        MM_ACCOUNT,
+        {"MM_CREDS": json.dumps({"access_token": "old-at", "refresh_token": "rt"})},
+    )
+    adapter = MiniMaxAdapter()
+    adapter._access_tokens["minimax:default"] = "new-at"
+    adapter.resolve_credentials(ctx)
+    assert adapter._access_tokens["minimax:default"] == "new-at"
+
+
 def test_minimax_refresh_returns_rotation(tmp_path):
     def handler(method, url, **kwargs):
         if "/oauth2/token" in url:

@@ -56,7 +56,7 @@ class LobsterAIAdapter:
             raise ApiError("LOBSTER_CREDS 不是合法 JSON") from exc
         if not isinstance(data, dict):
             raise ApiError("LOBSTER_CREDS 不是 JSON 对象")
-        if data.get("access_token"):
+        if data.get("access_token") and not self._access_tokens.get(ctx.account.account_key):
             self._access_tokens[ctx.account.account_key] = str(data["access_token"])
         return Credentials(raw=secret.value, source_key=secret.source_key, data=data)
 

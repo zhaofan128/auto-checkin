@@ -61,6 +61,15 @@ def test_lobster_first_login_reset_is_not_gained(tmp_path):
     assert result.points.message == "平台返回额度重置，非签到获得积分"
 
 
+def test_lobster_resolve_does_not_overwrite_refreshed_token(tmp_path):
+    http = FakeHttp(lambda method, url, **kwargs: response({}))
+    ctx = make_context(tmp_path, http, LOBSTER_ACCOUNT, lobster_env())
+    adapter = LobsterAIAdapter()
+    adapter._access_tokens["lobsterai:default"] = "new-at"
+    adapter.resolve_credentials(ctx)
+    assert adapter._access_tokens["lobsterai:default"] == "new-at"
+
+
 def test_lobster_explicit_credits_become_gained(tmp_path):
     def handler(method, url, **kwargs):
         if VERSION_API in url:

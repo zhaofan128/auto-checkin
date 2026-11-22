@@ -57,7 +57,7 @@ class MiniMaxAdapter:
         if not isinstance(data, dict):
             raise ApiError("MM_CREDS 不是 JSON 对象")
         token = str(data.get("access_token") or "")
-        if token:
+        if token and not self._access_tokens.get(ctx.account.account_key):
             self._access_tokens[ctx.account.account_key] = token
         return Credentials(raw=secret.value, source_key=secret.source_key, data=data)
 
