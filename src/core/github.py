@@ -52,9 +52,9 @@ class GhCliGitHubSecrets:
             return None
 
     def can_write(self) -> bool:
-        result = self._run(
-            ["secret", "list", "--repo", self.repo, "--json", "name", "--limit", "1"]
-        )
+        # Public-key access requires repository Secrets permission. Using the
+        # REST endpoint avoids depending on the runner's gh --json support.
+        result = self._run(["api", f"repos/{self.repo}/actions/secrets/public-key"])
         return bool(result is not None and result.returncode == 0)
 
     def set_secret(self, name: str, value: str) -> str | None:
@@ -67,18 +67,16 @@ class GhCliGitHubSecrets:
         return self.get_secret_updated_at(name)
 
     def get_secret_updated_at(self, name: str) -> str | None:
-        result = self._run(
-            ["secret", "list", "--repo", self.repo, "--json", "name,updatedAt"]
-        )
+        result = self._run(["api", f"repos/{self.repo}/actions/secrets"])
         if result is None or result.returncode != 0:
             return None
         try:
-            items = json.loads(result.stdout)
+            payload = json.loads(result.stdout)
         except json.JSONDecodeError:
             return None
-        for item in items:
+        for item in payload.get("secrets", []):
             if isinstance(item, dict) and item.get("name") == name:
-                return item.get("updatedAt")
+                return item.get("updated_at")
         return None
 
 
