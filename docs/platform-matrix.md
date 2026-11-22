@@ -2,18 +2,18 @@
 
 Summary:
 
-- `verified`: 1（WorkBuddy）
-- `blocked_no_secret`: 12
+- `verified`: 2（WorkBuddy、TraeWork CN）
+- `blocked_no_secret`: 11
 - `code_only`: 0
 
-WorkBuddy was verified through the host repo Actions workflow
+WorkBuddy and TraeWork CN were verified through the host repo Actions workflow
 `probe-platform` on 2026-11-23. The other rows have not produced a real
 check-in response yet; their point values remain `null`.
 
 | # | platform | account | points_gained | points_current | points_source | verification_status | points_gained_semantics | points_current_semantics | 备注 |
 |---:|---|---|---|---|---|---|---|---|---|
 | 1 | workbuddy | workbuddy:default | 100 | 3500 | api_field | verified | explicit `credit`/`data.credit` → `api_field`; else before/after diff → `diff_before_after`; status-only → null + `api_unavailable`; never `today_credit` | status `total_credits`/`balance` | real probe 2026-11-23: success, travel=departed:古镇客栈; tokens not logged |
-| 2 | traework | traework:cn | null | null | api_unavailable | blocked_no_secret | claim `credits_earned_today`/`grant_credits`/`credits`; else before/after diff | claim/status `total_credits` or `credits` | no `TRAE_CREDS`; P-256 device proof ported |
+| 2 | traework | traework:cn | null | 100 | api_unavailable | verified | claim `credits_earned_today`/`grant_credits`/`credits`; else before/after diff | claim/status `total_credits` or `credits` | real probe 2026-11-23: success; claim returned no gained, current=100 from status; tokens not logged |
 | 3 | qoder_cn | qoder:cn | null | null | api_unavailable | blocked_no_secret | campaign claim `gained`/`credits`/`reward_credits`; else null | usage `total_credits` (candidate `/sash/api/v1/me/usage`) | independent state/lock/log; no `QODER_CN_TOKEN` |
 | 4 | qoder_global | qoder:global | null | null | api_unavailable | blocked_no_secret | campaign claim fields; static token | usage/account interface | independent state/lock/log; no `QODER_GLOBAL_TOKEN` |
 | 5 | minimax | minimax:default | null | null | api_unavailable | blocked_no_secret | today `days[].points` when `claim_result=1` | no total field found in code; null + `api_unavailable` | no `MM_CREDS` |
@@ -56,6 +56,38 @@ check-in response yet; their point values remain `null`.
 
 This confirms WorkBuddy's explicit `credit` path and status `total_credits`
 path. No token or cookie is present in the event.
+
+## Verified probe sample: TraeWork CN (2026-11-23)
+
+```json
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-23T01:40:36+08:00",
+  "run_id": "20261123T014031-408fa5",
+  "platform": "traework",
+  "platform_name": "TraeWork CN",
+  "account": "tr***rk",
+  "account_key": "traework:cn",
+  "checkin_status": "success",
+  "points_gained": null,
+  "points_current": 100,
+  "points_unit": "credits",
+  "points_source": "api_unavailable",
+  "message": "签到成功",
+  "error_type": null,
+  "error_detail": null,
+  "duration_ms": 4911,
+  "run_profile": "manual",
+  "attempt": 1,
+  "manual_required": false,
+  "skipped_reason": null,
+  "turnstile": null
+}
+```
+
+The claim response did not provide a usable `credits_earned_today` / `grant_credits`
+/ `credits` value; current `100` came from the status interface. No token or
+cookie is present in the event.
 
 ## Evidence for degraded runs
 
