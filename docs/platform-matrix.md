@@ -2,17 +2,17 @@
 
 Summary:
 
-- `verified`: 0
-- `blocked_no_secret`: 13
+- `verified`: 1（WorkBuddy）
+- `blocked_no_secret`: 12
 - `code_only`: 0
 
-No real check-in response was produced in this environment because no Secrets
-are configured. All measured point values below are `null`; `points_source` is
-the degraded `api_unavailable` marker, not a real API result.
+WorkBuddy was verified through the host repo Actions workflow
+`probe-platform` on 2026-11-23. The other rows have not produced a real
+check-in response yet; their point values remain `null`.
 
 | # | platform | account | points_gained | points_current | points_source | verification_status | points_gained_semantics | points_current_semantics | 备注 |
 |---:|---|---|---|---|---|---|---|---|---|
-| 1 | workbuddy | workbuddy:default | null | null | api_unavailable | blocked_no_secret | explicit `credit`/`data.credit` → `api_field`; else before/after diff → `diff_before_after`; status-only → null + `api_unavailable`; never `today_credit` | status `total_credits`/`balance` | no `WB_RT`/`GH_PAT`; adapter + tests done |
+| 1 | workbuddy | workbuddy:default | 100 | 3500 | api_field | verified | explicit `credit`/`data.credit` → `api_field`; else before/after diff → `diff_before_after`; status-only → null + `api_unavailable`; never `today_credit` | status `total_credits`/`balance` | real probe 2026-11-23: success, travel=departed:古镇客栈; tokens not logged |
 | 2 | traework | traework:cn | null | null | api_unavailable | blocked_no_secret | claim `credits_earned_today`/`grant_credits`/`credits`; else before/after diff | claim/status `total_credits` or `credits` | no `TRAE_CREDS`; P-256 device proof ported |
 | 3 | qoder_cn | qoder:cn | null | null | api_unavailable | blocked_no_secret | campaign claim `gained`/`credits`/`reward_credits`; else null | usage `total_credits` (candidate `/sash/api/v1/me/usage`) | independent state/lock/log; no `QODER_CN_TOKEN` |
 | 4 | qoder_global | qoder:global | null | null | api_unavailable | blocked_no_secret | campaign claim fields; static token | usage/account interface | independent state/lock/log; no `QODER_GLOBAL_TOKEN` |
@@ -25,6 +25,37 @@ the degraded `api_unavailable` marker, not a real API result.
 | 11 | seekai | seekai:default | null | null | api_unavailable | blocked_no_secret | New-API `quota_awarded` | `/api/user/self` → `/api/data/self` → `/api/usage/token/`; no password fallback | token-only; no `SEEKAI_TOKEN` |
 | 12 | benst | benst:default | null | null | api_unavailable | blocked_no_secret | New-API `quota_awarded` | `/api/user/self` → `/api/data/self` → `/api/usage/token/` | token-only; 02:00/02:10 window; synced origin/main `ebfd8b7` |
 | 13 | kk | kk:default | null | null | api_unavailable | blocked_no_secret | `quota_awarded` | `/api/user/self`; not check-in count | if `KK_TOKEN` exists but `KK_TURNSTILE_TOKEN` missing → `turnstile_unavailable`; no `KK_TOKEN` → `secret_missing` |
+
+## Verified probe sample: WorkBuddy (2026-11-23)
+
+```json
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-23T01:39:42+08:00",
+  "run_id": "20261123T013932-be91d9",
+  "platform": "workbuddy",
+  "platform_name": "WorkBuddy",
+  "account": "wo***dy",
+  "account_key": "workbuddy:default",
+  "checkin_status": "success",
+  "points_gained": 100,
+  "points_current": 3500,
+  "points_unit": "credits",
+  "points_source": "api_field",
+  "message": "签到成功; travel=departed:古镇客栈",
+  "error_type": null,
+  "error_detail": null,
+  "duration_ms": 9685,
+  "run_profile": "manual",
+  "attempt": 1,
+  "manual_required": false,
+  "skipped_reason": null,
+  "turnstile": null
+}
+```
+
+This confirms WorkBuddy's explicit `credit` path and status `total_credits`
+path. No token or cookie is present in the event.
 
 ## Evidence for degraded runs
 
