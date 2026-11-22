@@ -68,6 +68,7 @@ def test_minimax_already_checked_does_not_fake_gained(tmp_path):
     assert result.points.gained is None
     assert result.points.current is None
     assert result.points.source == "api_unavailable"
+    assert result.points.message == "平台未返回总积分"
 
 
 def test_minimax_resolve_does_not_overwrite_refreshed_token(tmp_path):
