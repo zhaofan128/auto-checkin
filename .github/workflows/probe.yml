@@ -1,0 +1,72 @@
+name: probe-platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '平台适配器'
+        type: choice
+        options:
+          - workbuddy
+          - traework
+          - qoder_cn
+          - qoder_global
+          - minimax
+          - lobsterai
+          - kk
+          - dgb
+          - aiaiai
+          - helpcoder
+          - kemeng
+          - seekai
+          - benst
+        default: workbuddy
+      apply:
+        description: '真正签到；关闭则只做状态/积分 dry-run'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Probe WorkBuddy
+        env:
+          WB_RT: ${{ secrets.WB_RT }}
+          TRAE_CREDS: ${{ secrets.TRAE_CREDS }}
+          QODER_CN_TOKEN: ${{ secrets.QODER_CN_TOKEN }}
+          QODER_GLOBAL_TOKEN: ${{ secrets.QODER_GLOBAL_TOKEN }}
+          MM_CREDS: ${{ secrets.MM_CREDS }}
+          LOBSTER_CREDS: ${{ secrets.LOBSTER_CREDS }}
+          KK_TOKEN: ${{ secrets.KK_TOKEN }}
+          KK_TURNSTILE_TOKEN: ${{ secrets.KK_TURNSTILE_TOKEN }}
+          CHECKIN_USERNAME: ${{ secrets.CHECKIN_USERNAME }}
+          CHECKIN_PASSWORD: ${{ secrets.CHECKIN_PASSWORD }}
+          CHECKIN_USERNAME_DGB: ${{ secrets.CHECKIN_USERNAME_DGB }}
+          CHECKIN_PASSWORD_DGB: ${{ secrets.CHECKIN_PASSWORD_DGB }}
+          CHECKIN_USERNAME_AIAIAI: ${{ secrets.CHECKIN_USERNAME_AIAIAI }}
+          CHECKIN_PASSWORD_AIAIAI: ${{ secrets.CHECKIN_PASSWORD_AIAIAI }}
+          CHECKIN_USERNAME_HELPCODER: ${{ secrets.CHECKIN_USERNAME_HELPCODER }}
+          CHECKIN_PASSWORD_HELPCODER: ${{ secrets.CHECKIN_PASSWORD_HELPCODER }}
+          CHECKIN_USERNAME_KEMENG: ${{ secrets.CHECKIN_USERNAME_KEMENG }}
+          CHECKIN_PASSWORD_KEMENG: ${{ secrets.CHECKIN_PASSWORD_KEMENG }}
+          SEEKAI_TOKEN: ${{ secrets.SEEKAI_TOKEN }}
+          BENST_TOKEN: ${{ secrets.BENST_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            python tools/probe_platform.py --platform "${{ inputs.platform }}" --apply
+          else
+            python tools/probe_platform.py --platform "${{ inputs.platform }}"
+          fi
