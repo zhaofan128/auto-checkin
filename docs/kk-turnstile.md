@@ -1,25 +1,32 @@
 # KK Turnstile policy
 
-## Production path: manual_token
+## Default path: browser fallback
 
-- `KK_TURNSTILE_TOKEN` is read first.
-- If present, the adapter calls the check-in API directly with that token.
-- Log fields: `turnstile.mode="manual_token"`, `result="manual_token"`,
-  `token_present=true`.
-- The token value is never logged, stored in state, or included in errors.
+KK now uses the Playwright browser fallback by default:
 
-## Missing manual token
+- Open `/login` under `xvfb-run` with headful Chromium.
+- Wait for `cf-turnstile-response`, click the challenge if needed.
+- Perform the check-in fetch inside the browser context.
+- Log `turnstile.mode="browser_fallback"`, `result`, `attempts`, `clicks`,
+  `duration_ms`, `token_present`.
+- The token value is never logged.
 
-If `KK_TURNSTILE_TOKEN` is absent, the adapter returns:
+Real CI result on 2026-11-23:
 
-- `checkin_status="skipped"`
-- `points_source="turnstile_unavailable"`
-- `message="KK_TURNSTILE_TOKEN 未配置，浏览器 fallback 在 GitHub Actions 环境通过率极低"`
-- `turnstile.mode="browser_fallback"`, `manual_required=true`
+```text
+turnstile.mode=browser_fallback
+turnstile.result=solved
+attempts=1
+clicks=2
+duration_ms=23571
+checkin_status=already_checked
+```
 
-The browser evaluator exists in `src/browser/turnstile.py` for local/experimental
-use, but it is not invoked by default in CI. This avoids burning IP reputation
-on repeated challenges.
+## Optional manual token
+
+`KK_TURNSTILE_TOKEN` remains an optional emergency override. It is not required
+for normal operation. When present, the adapter uses `mode="manual_token"` and
+does not launch the browser.
 
 ## Old kk repository fallback
 
@@ -29,17 +36,12 @@ actually pass Turnstile. If it also relies on a manual token, keeping it is
 fallback until the new host validates all 13 account targets; after validation,
 stop its schedule and archive it. Do not keep a long-term dual run.
 
-## CI acceptance metric
+## CI acceptance
 
-Record per attempt:
-
-- `turnstile.mode` (`manual_token` / `browser_fallback`)
-- `turnstile.result`
-- `manual_required`
-- `attempts`, `clicks`, `duration_ms`
-
-If browser fallback succeeds less than 50% over at least 3 attempts, do not keep
-retrying; use manual_token only.
+- If browser fallback succeeds, continue using it.
+- If it times out repeatedly, use `KK_TURNSTILE_TOKEN` as a one-run override or
+  keep the old repository as the temporary fallback.
+- Do not retry aggressively; repeated attempts lower IP reputation.
 
 See [turnstile-fallback.md](turnstile-fallback.md) for the cf_clearance
 evaluation.

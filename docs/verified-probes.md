@@ -192,6 +192,70 @@ returned `already_checked` with `message="今日已签到；平台未返回总�
 These events were produced before the duplicate-reason cleanup. Future logs read
 `今日已签到；签到响应未返回 ...`. No token/cookie is present.
 
-SeekAI and KK are already checked today, so the Turnstile paths were not
-exercised. They still need `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN`
-before the next unchecked run.
+## KK browser fallback (2026-11-23)
+
+```json
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-23T18:46:33+08:00",
+  "run_id": "20261123T184608-389fa3",
+  "platform": "kk",
+  "platform_name": "KK",
+  "account": "***",
+  "account_key": "kk:default",
+  "checkin_status": "already_checked",
+  "points_gained": null,
+  "points_current": 997759,
+  "points_unit": "quota",
+  "points_source": "api_unavailable",
+  "message": "今日已签到；签到响应未返回本次积分",
+  "error_type": null,
+  "error_detail": null,
+  "duration_ms": 24407,
+  "run_profile": "manual",
+  "attempt": 1,
+  "manual_required": false,
+  "skipped_reason": null,
+  "turnstile": {
+    "mode": "browser_fallback",
+    "attempts": 1,
+    "clicks": 2,
+    "result": "solved",
+    "manual_required": false,
+    "duration_ms": 23571,
+    "token_present": true
+  }
+}
+```
+
+## SeekAI token failure (2026-11-23)
+
+```json
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-23T18:44:15+08:00",
+  "run_id": "20261123T184415-9d8d2d",
+  "platform": "seekai",
+  "platform_name": "SeekAI",
+  "account": "se***ai",
+  "account_key": "seekai:default",
+  "checkin_status": "failed",
+  "points_gained": null,
+  "points_current": null,
+  "points_unit": "quota",
+  "points_source": "api_unavailable",
+  "message": "SeekAI 签到状态查询失败: HTTP 401；当前余额接口不可用",
+  "error_type": "api_error",
+  "error_detail": "Unauthorized, invalid access token",
+  "duration_ms": 307,
+  "run_profile": "manual",
+  "attempt": 1,
+  "manual_required": false,
+  "skipped_reason": null,
+  "turnstile": null
+}
+```
+
+The SeekAI browser fallback was not exercised because the status API rejected
+`SEEKAI_TOKEN` before the Turnstile step. KK's browser fallback solved Turnstile
+with 2 clicks and no manual token.

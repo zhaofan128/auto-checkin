@@ -13,17 +13,16 @@
 |---|---|
 | 账户目标 | 13 |
 | 平台适配器 | 12（Qoder 一个模块，CN/Global 两个账户） |
-| 已验证（verified） | 11 |
-| 受 Secret 阻塞（blocked_no_secret） | 2：SeekAI、KK |
-| 测试 | 95 通过 |
+| 已验证（verified） | 12 |
+| 受 Secret 阻塞（blocked_no_secret） | 1：SeekAI（`SEEKAI_TOKEN` 返回 401） |
+| 测试 | 97 通过 |
 | 运行时 | Python 3.12 |
 | 旧 kk 仓库 | 仍在运行，未归档 |
 
-- WorkBuddy、TraeWork、Qoder CN/Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST 已完成真实响应探测。
-- SeekAI 和 KK 今天返回了真实 `already_checked` 与当前余额，但下一次未签到时会要求 Turnstile：
-  - SeekAI 需要 `SEEKAI_TURNSTILE_TOKEN`
-  - KK 需要 `KK_TURNSTILE_TOKEN`
-- 缺少人工 Turnstile token 时，这两个账户返回 `skipped` + `turnstile_unavailable`，不会伪造成功。
+- WorkBuddy、TraeWork、Qoder CN/Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST、KK 已完成真实响应探测。
+- KK 的 Playwright 浏览器 fallback 已在 GitHub Actions 中真实通过 Turnstile：`solved`，2 次点击，无需人工 token。
+- SeekAI 的浏览器 fallback 已实现，但当前宿主 `SEEKAI_TOKEN` 返回 `401 invalid access token`，请求还没走到 Turnstile。
+- `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN` 只是可选应急覆盖，不是默认必需。
 - 旧 kk 仓库只作为新宿主验证完成前的临时兜底；13/13 验证完成后停用，不长期双跑。
 
 完整逐行状态与真实脱敏事件：
@@ -84,7 +83,7 @@ src/
 | 可萌 | verified | null | 1008044 | api_unavailable |
 | BENST | verified | null | 773199 | api_unavailable |
 | SeekAI | blocked_no_secret | null | 18999999 | api_unavailable |
-| KK | blocked_no_secret | null | 997759 | api_unavailable |
+| KK | verified | null | 997759 | api_unavailable |
 
 说明：
 
@@ -94,9 +93,12 @@ src/
 
 ## 快速开始
 
-要求 Python 3.12。
+要求 Python 3.12。浏览器 fallback 需要 Playwright 和 Chromium：
 
 ```bash
+python3 -m pip install -r requirements.txt
+python3 -m playwright install chromium
+
 python3 -m pytest tests -q
 python3 -m compileall -q src tests tools
 ```
@@ -162,21 +164,21 @@ GH_PAT
 
 - `GH_PAT` 需要可写 Secrets，用于 WorkBuddy/TraeWork/Qoder CN/MiniMax/LobsterAI 的滚动令牌写回。
 - 没有 `GH_PAT` 写权限时，滚动账户返回 `skipped`，`skipped_reason=secret_writeback_unavailable`。
-- SeekAI 账号通过 GitHub 注册，签到使用 `SEEKAI_TOKEN`，不参与 `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` 回退；仍需 `SEEKAI_TURNSTILE_TOKEN` 才能完成未签到当天的签到。
-- `SEEKAI_TOKEN` 在当前真实代码里是静态访问令牌，没有可调用的 refresh 接口，因此不能自动滚动；失效时需手动更新 Secret。
-- `KK_TOKEN` 可长期使用，但它不是 Turnstile token；未签到当天仍需要 `KK_TURNSTILE_TOKEN`。
+- SeekAI 账号通过 GitHub 注册，签到使用 `SEEKAI_TOKEN`，不参与 `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` 回退；浏览器 fallback 负责 Turnstile。
+- `SEEKAI_TOKEN` 在当前真实代码里是静态访问令牌，没有可调用的 refresh 接口，因此不能自动滚动；当前宿主令牌返回 401，需要更新。
+- `KK_TOKEN` 可长期使用；KK 的 Turnstile 由浏览器 fallback 自动处理。
 
-### Turnstile 人工 token
+### Turnstile 人工 token（可选应急）
 
 ```text
 KK_TURNSTILE_TOKEN
 SEEKAI_TURNSTILE_TOKEN
 ```
 
-这两个 token 短期有效，无法从其他 Secret 推导。缺失时：
+这两个 token 不再作为默认路径。默认使用 Playwright 浏览器 fallback；人工 token 只在浏览器连续失败时临时覆盖。浏览器也失败时：
 
-- KK：`skipped` + `turnstile_unavailable`
-- SeekAI：`skipped` + `turnstile_unavailable`
+- KK：`failed` + `turnstile_timeout` 或 `browser_unavailable`
+- SeekAI：`failed` + `turnstile_timeout` 或 `browser_unavailable`
 
 ### 四个密码站点的逐站覆盖（可选）
 
@@ -234,15 +236,15 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 - 13 个账户目标适配器
 - 统一 core：Secret 兼容、状态、锁、刷新单飞、日志、积分、脱敏、重试、限流
-- 95 个测试
-- 11 个账户目标真实响应验证
+- 97 个测试
+- 12 个账户目标真实响应验证
 - 旧 kk 历史日志归档路径与平台矩阵
 
 待完成：
 
 - `src/main.py` 单主入口与主 workflow 收敛
 - 旧 workflow 的日志截断逻辑移除
-- SeekAI / KK 的 Turnstile 人工 token 配置
+- SeekAI 的 `SEEKAI_TOKEN` 更新（当前 401）
 - 13/13 验证后停用旧 kk 仓库
 
 ## 开发

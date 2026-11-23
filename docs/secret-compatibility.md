@@ -81,21 +81,21 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 ```
 
 `GH_PAT` already exists in the host repo and is required for rolling write-back.
-`KK_TURNSTILE_TOKEN` is a short-lived manual Turnstile token, not a login
-credential. It must be configured as a host Secret (or supplied for one manual
-run) if KK is to check in; without it KK is skipped with
-`turnstile_unavailable`.
 
-Additional host Secrets to configure:
+Optional emergency Turnstile overrides:
 
 ```text
 KK_TURNSTILE_TOKEN
 SEEKAI_TURNSTILE_TOKEN
 ```
 
-SeekAI's token login still requires Turnstile at check-in. Without
-`SEEKAI_TURNSTILE_TOKEN` it is skipped with `turnstile_unavailable`; it is not
-treated as a normal New-API password site.
+These are not required by default. KK and SeekAI now use the Playwright browser
+fallback; the manual tokens are only one-run overrides when the browser fallback
+fails.
+
+SeekAI's token login still requires a valid `SEEKAI_TOKEN`. The current host
+value returned `401 invalid access token`; update it before the next probe.
+SeekAI is not treated as a normal New-API password site.
 
 Optional per-site overrides for the four password sites are listed above. They
 are not required when the global `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` works.

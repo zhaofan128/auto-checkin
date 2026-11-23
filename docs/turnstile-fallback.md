@@ -2,16 +2,17 @@
 
 ## Current production path
 
-KK's production path is `KK_TURNSTILE_TOKEN` (manual token). If it is absent,
-the adapter returns:
+KK and SeekAI now use the Playwright browser fallback by default:
 
-- `checkin_status="skipped"`
-- `points_source="turnstile_unavailable"`
-- `message` explains that the manual token is missing and CI browser fallback is
-  unreliable.
+- headful Chromium under `xvfb-run`
+- wait for `cf-turnstile-response`
+- click challenge if needed (max 3)
+- perform the check-in fetch inside the browser context
+- log only mode/result/attempts/clicks/duration/token_present
 
-The browser evaluator remains in `src/browser/turnstile.py` for local evaluation
-and future work, but it is not the default CI path.
+KK was verified in GitHub Actions on 2026-11-23: `solved`, 2 clicks, 1 attempt.
+Manual `KK_TURNSTILE_TOKEN` / `SEEKAI_TURNSTILE_TOKEN` remain optional overrides,
+not requirements.
 
 ## cloudflare-solver / cf_clearance
 
@@ -24,7 +25,8 @@ fails. GitHub Actions runners use shared data-center egress IPs, so:
 - a clearance minted on one runner may be useless on the next run;
 - storing the cookie creates a new sensitive credential that must be rotated.
 
-**Conclusion:** `cf_clearance` is not a production default. `KK_TURNSTILE_TOKEN`
-is the supported path. cloudflare-solver remains a future, opt-in evaluation
-only, subject to compliance, account-risk and security review. Clearance
-cookies must never be logged or committed.
+**Conclusion:** `cf_clearance` is not a production default. Browser fallback is
+the default; manual Turnstile tokens are optional emergency overrides.
+cloudflare-solver remains a future, opt-in evaluation only, subject to
+compliance, account-risk and security review. Clearance cookies must never be
+logged or committed.

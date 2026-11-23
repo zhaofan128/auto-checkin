@@ -2,14 +2,14 @@
 
 Summary:
 
-- `verified`: 11（WorkBuddy、TraeWork CN、Qoder CN、Qoder Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST）
-- `blocked_no_secret`: 2（SeekAI、KK；均缺 Turnstile 人工 token）
+- `verified`: 12（WorkBuddy、TraeWork CN、Qoder CN、Qoder Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST、KK）
+- `blocked_no_secret`: 1（SeekAI：`SEEKAI_TOKEN` 返回 401 invalid access token）
 - `code_only`: 0
 
 Real redacted events are in [verified-probes.md](verified-probes.md).
-SeekAI and KK returned real `already_checked` balances, but their next unchecked
-run requires `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN`; they are therefore
-still blocked, not marked fully verified.
+KK's browser fallback solved Turnstile in GitHub Actions without a manual token.
+SeekAI's browser fallback is implemented, but the current host `SEEKAI_TOKEN`
+is invalid, so the request never reached the Turnstile step.
 
 | # | platform | account | points_gained | points_current | points_source | verification_status | points_gained_semantics | points_current_semantics | 备注 |
 |---:|---|---|---|---|---|---|---|---|---|
@@ -23,17 +23,20 @@ still blocked, not marked fully verified.
 | 8 | aiaiai | aiaiai:default | null | 38636 | api_unavailable | verified | `quota_awarded` | same as DGB | real already_checked |
 | 9 | helpcoder | helpcoder:default | null | 160000000 | api_unavailable | verified | `quota_awarded` | same as DGB | real already_checked |
 | 10 | kemeng | kemeng:default | null | 1008044 | api_unavailable | verified | `quota_awarded` | same as DGB | real already_checked |
-| 11 | seekai | seekai:default | null | 18999999 | api_unavailable | blocked_no_secret | New-API `quota_awarded` after Turnstile | `/api/user/self` → `/api/data/self` → `/api/usage/token/` | real already_checked; `SEEKAI_TURNSTILE_TOKEN` missing; next unchecked run skips |
+| 11 | seekai | seekai:default | null | 18999999 | api_unavailable | blocked_no_secret | New-API `quota_awarded` after Turnstile | `/api/user/self` → `/api/data/self` → `/api/usage/token/` | last real already_checked before expiry; later 401 `invalid access token`; update `SEEKAI_TOKEN` |
 | 12 | benst | benst:default | null | 773199 | api_unavailable | verified | New-API `quota_awarded` | `/api/user/self` → `/api/data/self` → `/api/usage/token/` | real already_checked; 02:00/02:10 window |
-| 13 | kk | kk:default | null | 997759 | api_unavailable | blocked_no_secret | `quota_awarded` after Turnstile | `/api/user/self`; not check-in count | real already_checked; `KK_TOKEN` copied; `KK_TURNSTILE_TOKEN` missing |
+| 13 | kk | kk:default | null | 997759 | api_unavailable | verified | `quota_awarded` after Turnstile | `/api/user/self`; not check-in count | browser_fallback solved, 2 clicks, no manual token |
 
-## Remaining blocked targets
+## Remaining blocked target
 
-Only two:
+Only SeekAI:
 
-- SeekAI: `SEEKAI_TOKEN` exists; `SEEKAI_TURNSTILE_TOKEN` missing.
-- KK: `KK_TOKEN` exists; `KK_TURNSTILE_TOKEN` missing.
+- `SEEKAI_TOKEN` in the host repo is old/invalid; the latest probe returned
+  `401 Unauthorized, invalid access token`.
+- The browser fallback is implemented, but it cannot start because status
+  authentication fails first.
+- Update `SEEKAI_TOKEN` in the host repo; then rerun the probe. No 0 or guessed
+  value is used.
 
-Both returned real `already_checked` balances today. The next unchecked run will
-skip with `turnstile_unavailable` until the manual token is supplied. No 0 or
-guessed value is used.
+KK is no longer blocked: its browser fallback solved Turnstile with 2 clicks
+and returned real `already_checked` data.
