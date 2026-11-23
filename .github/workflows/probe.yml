@@ -26,6 +26,10 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: daily-checkin
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
