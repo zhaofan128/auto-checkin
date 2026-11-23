@@ -125,7 +125,7 @@ class NewApiAdapter:
                 current=current,
                 unit="quota",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回 quota_awarded"
+                message="签到响应未返回 quota_awarded"
                 + (f"；{current_note}" if current_note else ""),
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
@@ -207,7 +207,7 @@ class NewApiAdapter:
                 current=current,
                 unit="quota",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回 quota_awarded",
+                message="签到响应未返回 quota_awarded",
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 

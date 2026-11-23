@@ -113,7 +113,7 @@ def test_workbuddy_already_checked_still_reads_current_points(tmp_path):
     assert result.points.gained is None
     assert result.points.current == 1200
     assert result.points.source == "api_unavailable"
-    assert result.points.message == "今日已签到，签到响应未返回本次积分"
+    assert result.points.message == "签到响应未返回本次积分"
     assert result.points.unit == "credits"
 
 

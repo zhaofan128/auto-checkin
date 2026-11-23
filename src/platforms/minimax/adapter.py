@@ -123,7 +123,7 @@ class MiniMaxAdapter:
                 message=(
                     "平台未返回总积分"
                     if current is None
-                    else "今日已签到，签到响应未返回本次积分"
+                    else "签到响应未返回本次积分"
                 ),
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
@@ -182,7 +182,7 @@ class MiniMaxAdapter:
                 message=(
                     "平台未返回总积分"
                     if current is None
-                    else "今日已签到，签到响应未返回本次积分"
+                    else "签到响应未返回本次积分"
                 ),
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)

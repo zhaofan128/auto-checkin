@@ -86,7 +86,7 @@ class KKAdapter:
                 current=current,
                 unit="quota",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
@@ -168,7 +168,7 @@ class KKAdapter:
                 current=current,
                 unit="quota",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 

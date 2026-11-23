@@ -152,7 +152,7 @@ class WorkBuddyAdapter:
                 current=prior_current,
                 unit=unit,
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(
                 status="already_checked",
@@ -186,7 +186,7 @@ class WorkBuddyAdapter:
                 current=current,
                 unit=unit,
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(
                 status="already_checked",

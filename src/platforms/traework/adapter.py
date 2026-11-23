@@ -111,7 +111,7 @@ class TraeWorkAdapter:
                 current=prior_current,
                 unit="credits",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
@@ -160,7 +160,7 @@ class TraeWorkAdapter:
                 current=current_after if current_after is not None else prior_current,
                 unit="credits",
                 explicit_source="api_unavailable",
-                message="今日已签到，签到响应未返回本次积分",
+                message="签到响应未返回本次积分",
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
