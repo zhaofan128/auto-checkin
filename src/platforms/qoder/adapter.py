@@ -19,7 +19,7 @@ from src.platforms.util import as_dict, first_number, response_json
 
 UA = "Qoder/claim"
 CAMPAIGNS_PATH = "/sash/api/v1/me/campaigns"
-USAGE_PATH = "/sash/api/v1/me/usage"
+USAGE_PATH = "/sash/api/v2/me/usage"
 JOB_REFRESH_PATH = "/api/v1/jobToken/refresh"
 JOB_EXCHANGE_PATH = "/api/v1/jobToken/exchange"
 
@@ -148,14 +148,39 @@ class QoderAdapter:
         ]
         current, current_note = self._current_points(token)
         if not benefits:
+            actions = sorted(
+                {
+                    str(item.get("actionType") or "")
+                    for item in campaigns
+                    if isinstance(item, dict)
+                }
+            )
+            statuses = sorted(
+                {
+                    str(item.get("claimStatus") or "")
+                    for item in campaigns
+                    if isinstance(item, dict)
+                }
+            )
+            kind = self._token_kind(creds.raw)
+            diagnostic = (
+                f"无签到活动; campaigns={len(campaigns)}; "
+                f"actions={actions}; statuses={statuses}; token={kind}; "
+                f"machine={self._machine_present()}; usage={current_note or 'ok'}"
+            )
             points = normalize_points(
                 gained=None,
                 current=current,
                 unit="credits",
                 explicit_source="api_unavailable",
-                message="无签到活动",
+                message=diagnostic,
             )
-            return CheckinResult(status="skipped", message="无签到活动", points=points, skipped_reason="no_activity")
+            return CheckinResult(
+                status="skipped",
+                message=diagnostic,
+                points=points,
+                skipped_reason="no_activity",
+            )
 
         campaign = benefits[0]
         claimable = campaign.get("claimStatus") == "CLAIMABLE"
@@ -286,16 +311,78 @@ class QoderAdapter:
             token=token,
         )
         if status != 200 or not isinstance(payload, dict):
-            return None, "Qoder usage 接口不可用"
+            return None, f"Qoder usage 接口不可用 (HTTP {status})"
+        usage = as_dict(payload.get("qoderUsage") or payload.get("qoder_usage"))
+        if usage:
+            pools = (
+                as_dict(usage.get("userQuota") or usage.get("user_quota")),
+                as_dict(usage.get("addOnQuota") or usage.get("add_on_quota")),
+                as_dict(
+                    usage.get("orgResourcePackage")
+                    or usage.get("org_resource_package")
+                ),
+            )
+            total_remaining = 0.0
+            found = False
+            for pool in pools:
+                remaining = first_number(pool.get("remaining"), pool.get("remaining_quota"))
+                if remaining is None:
+                    cap = first_number(pool.get("total"), pool.get("cap"))
+                    used = first_number(pool.get("used"))
+                    if cap is not None and used is not None:
+                        remaining = cap - used
+                if remaining is not None:
+                    total_remaining += remaining
+                    found = True
+            if found:
+                return total_remaining, None
         data = as_dict(payload.get("data") or payload)
         current = first_number(
             data.get("total_credits"),
+            data.get("totalCredits"),
             data.get("credits"),
             data.get("balance"),
         )
         if current is None:
-            return None, "Qoder usage 接口未返回 total_credits"
+            return None, "Qoder usage v2 未返回 quota remaining"
         return current, None
+
+    @staticmethod
+    def _token_kind(raw: str) -> str:
+        value = (raw or "").strip()
+        if value.startswith("{"):
+            try:
+                data = json.loads(value)
+            except ValueError:
+                return "json:invalid"
+            return "json:" + ",".join(sorted(data.keys()))
+        for prefix in ("dt-", "pt-", "jt-", "eyJ"):
+            if value.startswith(prefix):
+                return prefix
+        return "opaque"
+
+    def _machine_headers(self) -> dict[str, str]:
+        prefix = "QODER_CN" if self.config.account.account_id == "cn" else "QODER_GLOBAL"
+        token = (
+            self.ctx_env.get(prefix + "_MACHINE_TOKEN")
+            or self.ctx_env.get("QODER_MACHINE_TOKEN")
+            or ""
+        ).strip()
+        type_ = (
+            self.ctx_env.get(prefix + "_MACHINE_TYPE")
+            or self.ctx_env.get("QODER_MACHINE_TYPE")
+            or ""
+        ).strip()
+        headers: dict[str, str] = {}
+        if token:
+            headers["Cosy-MachineToken"] = token
+        if type_:
+            headers["Cosy-MachineType"] = type_
+        return headers
+
+    def _machine_present(self) -> str:
+        headers = self._machine_headers()
+        return "yes" if "Cosy-MachineToken" in headers and "Cosy-MachineType" in headers else "no"
 
     @staticmethod
     def _extract_gained(payload: Mapping[str, Any]) -> int | float | None:
@@ -324,6 +411,7 @@ class QoderAdapter:
             "Cosy-ClientType": "10",
             "User-Agent": UA,
             "Accept": "application/json",
+            **self._machine_headers(),
         }
         if token:
             headers["Authorization"] = "Bearer " + token
@@ -342,6 +430,7 @@ class QoderAdapter:
 
     def bind_http(self, ctx: AccountContext) -> None:
         self.ctx_http = ctx.http
+        self.ctx_env = dict(ctx.secrets.env)
 
 
 class QoderPlatform:
