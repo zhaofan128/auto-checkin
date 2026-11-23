@@ -14,14 +14,16 @@
 | 账户目标 | 13 |
 | 平台适配器 | 12（Qoder 一个模块，CN/Global 两个账户） |
 | 已验证（verified） | 11 |
-| 受 Secret 阻塞（blocked_no_secret） | 2：Qoder CN/Global（缺桌面设备身份） |
+| 受 Secret 阻塞（blocked_no_secret） | 2：Qoder CN/Global（账号资格/桌面设备身份） |
 | 测试 | 100 通过 |
 | 运行时 | Python 3.12 |
 | 旧 kk 仓库 | 定时任务已停用，仓库保留待归档 |
 
 - KK 的 Playwright 浏览器 fallback 已在 GitHub Actions 中真实通过 Turnstile：`solved`，2 次点击，无需人工 token。
 - SeekAI 在更新 `SEEKAI_TOKEN` 后，同一浏览器 fallback 也真实通过：`solved`，2 次点击，无需人工 Turnstile token。
-- Qoder CN/Global 的 usage 已修复（1433 / 771），但 campaigns 只有 `VIEW_DETAILS`，没有 `CLAIM_BENEFIT`；需要 Qoder 桌面端设备身份。
+- Qoder CN/Global 的 usage 已修复（1433 / 771），但 campaigns 只有 `VIEW_DETAILS`，没有 `CLAIM_BENEFIT`。
+- Qoder CN 的 PAT 可正常换取 job token，但账户类型是 `personal_standard`；官方每日 100 Credits 仅对 Pro 试用/个人付费开放，因此当前账号不满足资格。
+- Qoder Global 仍需桌面设备身份并确认账号资格。
 - `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN` 只是可选应急覆盖，不是默认必需。
 - 旧 kk 仓库的定时任务已停用；仓库保留用于回滚，主 workflow 跑完一个自然周期后归档。
 
@@ -184,7 +186,8 @@ QODER_GLOBAL_MACHINE_TYPE
 ```
 
 没有这些值时，usage 仍可读取，但 campaigns 只返回 `VIEW_DETAILS`，签到保持
-`blocked`，不会伪造成功。
+`blocked`，不会伪造成功。即使设备身份齐全，Qoder CN 的
+`personal_standard` 账号仍不满足 Pro 试用/付费活动资格。
 
 ### Turnstile 人工 token（可选应急）
 
@@ -258,7 +261,7 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 - 13 个账户目标适配器
 - 统一 core：Secret 兼容、状态、锁、刷新单飞、日志、积分、脱敏、重试、限流
 - 100 个测试
-- 11 个账户目标真实签到验证；Qoder CN/Global 已拿到 usage，但缺桌面设备身份
+- 11 个账户目标真实签到验证；Qoder CN/Global 已拿到 usage，但 Qoder CN 账号资格不符、Global 缺设备身份
 - `src/main.py` 单主入口
 - 主 workflow 已切换为单 job，完整跑通 13 个账户目标
 - 旧 kk 历史日志归档与 SHA-256 `META.json`
@@ -267,7 +270,7 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 待完成：
 
-- Qoder 桌面设备身份：`QODER_CN_MACHINE_TOKEN/TYPE`、`QODER_GLOBAL_MACHINE_TOKEN/TYPE`
+- Qoder 活动资格：CN 需要 Pro 试用/付费账号；Global 还需要桌面设备身份
 - 主 workflow 跑完一个自然周期后归档旧 kk 仓库
 
 ## 开发

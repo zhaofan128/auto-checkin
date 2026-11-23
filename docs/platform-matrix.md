@@ -3,7 +3,7 @@
 Summary:
 
 - `verified`: 11
-- `blocked_no_secret`: 2（Qoder CN、Qoder Global：缺桌面设备身份）
+- `blocked_no_secret`: 2（Qoder CN：账号 `personal_standard` 不满足 Pro/付费资格；Qoder Global：缺桌面设备身份/资格确认）
 - `code_only`: 0
 
 Real redacted events are in [verified-probes.md](verified-probes.md).
@@ -18,8 +18,8 @@ without Qoder desktop `Cosy-MachineToken` / `Cosy-MachineType`.
 |---:|---|---|---|---|---|---|---|---|---|
 | 1 | workbuddy | workbuddy:default | 100 | 3500 | api_field | verified | explicit `credit`/`data.credit` → `api_field`; else before/after diff → `diff_before_after`; status-only → null + `api_unavailable`; never `today_credit` | status `total_credits`/`balance` | real success 2026-11-23; travel=departed:古镇客栈 |
 | 2 | traework | traework:cn | null | 100 | api_unavailable | verified | claim `credits_earned_today`/`grant_credits`/`credits`; else before/after diff | claim/status `total_credits` or `credits` | real success; claim returned no gained, current from status |
-| 3 | qoder_cn | qoder:cn | null | 1433 | api_field | blocked_no_secret | campaign `CLAIM_BENEFIT` claim fields; absent here | usage v2 `qoderUsage.userQuota.remaining` | campaigns=1 `VIEW_DETAILS` act-20261020-008; machine=no; need `Cosy-MachineToken/Type` |
-| 4 | qoder_global | qoder:global | null | 771 | api_field | blocked_no_secret | campaign `CLAIM_BENEFIT` claim fields; absent here | usage v2 `qoderUsage` | campaigns=1 `VIEW_DETAILS` act-20261020-008; machine=no; need `Cosy-MachineToken/Type` |
+| 3 | qoder_cn | qoder:cn | null | 1433 | api_field | blocked_no_secret | campaign `CLAIM_BENEFIT` claim fields; absent here | usage v2 `qoderUsage.userQuota.remaining` | PAT exchange 200; `userType=personal_standard`; event requires Pro trial/paid; campaigns=1 `VIEW_DETAILS` |
+| 4 | qoder_global | qoder:global | null | 771 | api_field | blocked_no_secret | campaign `CLAIM_BENEFIT` claim fields; absent here | usage v2 `qoderUsage` | campaigns=1 `VIEW_DETAILS`; machine=no; need desktop identity and eligibility confirmation |
 | 5 | minimax | minimax:default | 400 | null | api_unavailable | verified | today `days[].points` when `claim_result=1` | no total field in actual response; null + `api_unavailable` | real success gained 400; already message includes “平台未返回总积分” |
 | 6 | lobsterai | lobsterai:default | 100 | null | api_unavailable | verified | explicit `creditsGranted`/`rewardCredits`/`credits`; `alreadyProcessed`/`claimedToday` → null + `idempotent_reset` | `total_credits`/`credits`/`balance`; else null | real success gained 100; current interface unavailable |
 | 7 | dgb | dgb:default | null | 112238913 | api_unavailable | verified | `quota_awarded` | `/api/user/self` → `/api/data/self` → `/api/usage/token/`; parse `quota`/`total_available`; `total_quota` forbidden | real already_checked; current balance from API |
@@ -34,14 +34,17 @@ without Qoder desktop `Cosy-MachineToken` / `Cosy-MachineType`.
 
 Only Qoder CN and Qoder Global:
 
-- Their bearer tokens authenticate usage (CN 1433 / Global 771), but the daily
-  credit campaign is only listed with Qoder's desktop device identity.
-- Current campaigns response: one `VIEW_DETAILS` campaign
-  (`act-20261020-008`), no `CLAIM_BENEFIT`, `machine=no`.
-- Add `QODER_CN_MACHINE_TOKEN` / `QODER_CN_MACHINE_TYPE` and
-  `QODER_GLOBAL_MACHINE_TOKEN` / `QODER_GLOBAL_MACHINE_TYPE` from the official
-  Qoder desktop `runtime-info` helper, then rerun the probe.
-- Without that identity, the API will keep returning no claimable daily
-  campaign; this is not a token-expiry or "already checked" state.
+- Qoder CN PAT exchange succeeds (`HTTP 200`), but the account usage reports
+  `userType=personal_standard`. The official daily 100 Credits event is open to
+  Pro trial and individual paid subscribers; `personal_standard` is not
+  eligible. The only campaign is the unrelated `VIEW_DETAILS` popup
+  `act-20261020-008`; there is no `CLAIM_BENEFIT`.
+- Qoder Global usage works (771), but campaigns still only return `VIEW_DETAILS`
+  and `machine=no`. It needs the desktop device identity and eligibility check.
+- These are account/device-eligibility blockers, not token expiry and not
+  "already checked". Claiming the `VIEW_DETAILS` popup returns 200 but does not
+  change the credit balance.
+- A Pro trial or paid Qoder account, plus the desktop `runtime-info` identity
+  where required, is needed before the daily campaign can be claimed.
 
 KK and SeekAI are verified and no longer blocked.
