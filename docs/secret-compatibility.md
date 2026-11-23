@@ -93,9 +93,10 @@ These are not required by default. KK and SeekAI now use the Playwright browser
 fallback; the manual tokens are only one-run overrides when the browser fallback
 fails.
 
-SeekAI's token login still requires a valid `SEEKAI_TOKEN`. The current host
-value returned `401 invalid access token`; update it before the next probe.
-SeekAI is not treated as a normal New-API password site.
+SeekAI's token login still requires a valid `SEEKAI_TOKEN`. The host token was
+updated and verified with the browser fallback. It is a static access token and
+must be updated manually if it becomes invalid. SeekAI is not treated as a
+normal New-API password site.
 
 Optional per-site overrides for the four password sites are listed above. They
 are not required when the global `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` works.

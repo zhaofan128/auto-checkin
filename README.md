@@ -13,17 +13,17 @@
 |---|---|
 | 账户目标 | 13 |
 | 平台适配器 | 12（Qoder 一个模块，CN/Global 两个账户） |
-| 已验证（verified） | 12 |
-| 受 Secret 阻塞（blocked_no_secret） | 1：SeekAI（`SEEKAI_TOKEN` 返回 401） |
+| 已验证（verified） | 13 |
+| 受 Secret 阻塞（blocked_no_secret） | 0 |
 | 测试 | 99 通过 |
 | 运行时 | Python 3.12 |
 | 旧 kk 仓库 | 仍在运行，未归档 |
 
-- WorkBuddy、TraeWork、Qoder CN/Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST、KK 已完成真实响应探测。
+- 13 个账户目标全部完成真实响应探测。
 - KK 的 Playwright 浏览器 fallback 已在 GitHub Actions 中真实通过 Turnstile：`solved`，2 次点击，无需人工 token。
-- SeekAI 的浏览器 fallback 已实现，但当前宿主 `SEEKAI_TOKEN` 返回 `401 invalid access token`，请求还没走到 Turnstile。
+- SeekAI 在更新 `SEEKAI_TOKEN` 后，同一浏览器 fallback 也真实通过：`solved`，2 次点击，无需人工 Turnstile token。
 - `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN` 只是可选应急覆盖，不是默认必需。
-- 旧 kk 仓库只作为新宿主验证完成前的临时兜底；13/13 验证完成后停用，不长期双跑。
+- 旧 kk 仓库仍作为临时兜底；主 workflow 完成一个完整周期后停用。
 
 完整逐行状态与真实脱敏事件：
 
@@ -82,7 +82,7 @@ src/
 | 帮帮程序员 | verified | null | 160000000 | api_unavailable |
 | 可萌 | verified | null | 1008044 | api_unavailable |
 | BENST | verified | null | 773199 | api_unavailable |
-| SeekAI | blocked_no_secret | null | 18999999 | api_unavailable |
+| SeekAI | verified | null | 18999999 | api_unavailable |
 | KK | verified | null | 997759 | api_unavailable |
 
 说明：
@@ -168,7 +168,7 @@ GH_PAT
 - `GH_PAT` 需要可写 Secrets，用于 WorkBuddy/TraeWork/Qoder CN/MiniMax/LobsterAI 的滚动令牌写回。
 - 没有 `GH_PAT` 写权限时，滚动账户返回 `skipped`，`skipped_reason=secret_writeback_unavailable`。
 - SeekAI 账号通过 GitHub 注册，签到使用 `SEEKAI_TOKEN`，不参与 `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` 回退；浏览器 fallback 负责 Turnstile。
-- `SEEKAI_TOKEN` 在当前真实代码里是静态访问令牌，没有可调用的 refresh 接口，因此不能自动滚动；当前宿主令牌返回 401，需要更新。
+- `SEEKAI_TOKEN` 在当前真实代码里是静态访问令牌，没有可调用的 refresh 接口；当前宿主令牌已更新并验证。
 - `KK_TOKEN` 可长期使用；KK 的 Turnstile 由浏览器 fallback 自动处理。
 
 ### Turnstile 人工 token（可选应急）
@@ -241,7 +241,7 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 - 13 个账户目标适配器
 - 统一 core：Secret 兼容、状态、锁、刷新单飞、日志、积分、脱敏、重试、限流
 - 99 个测试
-- 12 个账户目标真实响应验证
+- 13 个账户目标真实响应验证
 - `src/main.py` 单主入口
 - 旧 kk 历史日志归档与 SHA-256 `META.json`
 - 旧 workflow 日志截断逻辑移除，改为纯追加
@@ -249,8 +249,7 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 待完成：
 
 - 主 workflow 收敛到单 job
-- SeekAI 的 `SEEKAI_TOKEN` 更新（当前 401）
-- 13/13 验证后停用旧 kk 仓库
+- 主 workflow 跑完一个完整周期后停用旧 kk 仓库
 
 ## 开发
 

@@ -256,6 +256,42 @@ These events were produced before the duplicate-reason cleanup. Future logs read
 }
 ```
 
-The SeekAI browser fallback was not exercised because the status API rejected
-`SEEKAI_TOKEN` before the Turnstile step. KK's browser fallback solved Turnstile
-with 2 clicks and no manual token.
+The earlier SeekAI token was expired; after updating `SEEKAI_TOKEN`, the browser
+fallback succeeded:
+
+```json
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-23T18:59:22+08:00",
+  "run_id": "20261123T185859-76def3",
+  "platform": "seekai",
+  "platform_name": "SeekAI",
+  "account": "se***ai",
+  "account_key": "seekai:default",
+  "checkin_status": "already_checked",
+  "points_gained": null,
+  "points_current": 18999999,
+  "points_unit": "quota",
+  "points_source": "api_unavailable",
+  "message": "今日已签到；签到响应未返回 quota_awarded",
+  "error_type": null,
+  "error_detail": null,
+  "duration_ms": 22848,
+  "run_profile": "manual",
+  "attempt": 1,
+  "manual_required": false,
+  "skipped_reason": null,
+  "turnstile": {
+    "mode": "browser_fallback",
+    "attempts": 1,
+    "clicks": 2,
+    "result": "solved",
+    "manual_required": false,
+    "duration_ms": 22574,
+    "token_present": true
+  }
+}
+```
+
+Both KK and SeekAI solved Turnstile with the Playwright browser fallback and no
+manual token.
