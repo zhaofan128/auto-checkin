@@ -20,6 +20,7 @@ from src.platforms.util import as_dict, first_number, response_json
 UA = "Qoder/claim"
 CAMPAIGNS_PATH = "/sash/api/v1/me/campaigns"
 USAGE_PATH = "/sash/api/v2/me/usage"
+DEVICE_REFRESH_PATH = "/api/v1/deviceToken/refresh"
 JOB_REFRESH_PATH = "/api/v1/jobToken/refresh"
 JOB_EXCHANGE_PATH = "/api/v1/jobToken/exchange"
 
@@ -102,17 +103,35 @@ class QoderAdapter:
         self.config = config
         self.account = config.account
         self._job_tokens: dict[str, str] = {}
+        self._device_tokens: dict[str, str] = {}
 
     def resolve_credentials(self, ctx: AccountContext) -> Credentials:
         secret = ctx.secrets.require(self.config.secret)
         if secret.value.startswith("dt-"):
-            self._job_tokens[ctx.account.account_key] = secret.value
+            self._device_tokens[ctx.account.account_key] = secret.value
+        elif secret.value.startswith("{"):
+            try:
+                data = json.loads(secret.value)
+            except ValueError:
+                data = {}
+            device_token = str(data.get("device_token") or data.get("deviceToken") or "").strip()
+            if device_token:
+                self._device_tokens[ctx.account.account_key] = device_token
         return Credentials(raw=secret.value, source_key=secret.source_key)
 
     def refresh(self, ctx: AccountContext, creds: Credentials) -> RotationResult | None:
         if not self.config.rolling:
             return None
         self.bind_http(ctx)
+        if self.config.account.account_id == "cn":
+            device_token, device_credential, device_error = self._refresh_device_token(creds.raw)
+            if device_token:
+                self._device_tokens[ctx.account.account_key] = device_token
+                if device_credential:
+                    return RotationResult(new_value=device_credential, reason="qoder_device_refresh")
+            if device_error:
+                # A credential with only a job refresh token is still valid.
+                pass
         token, new_credential, error = self._resolve_job_token(creds.raw)
         if error:
             raise RefreshFailed("Qoder 刷新失败: " + error)
@@ -124,10 +143,12 @@ class QoderAdapter:
 
     def checkin(self, ctx: AccountContext, creds: Credentials) -> CheckinResult:
         self.bind_http(ctx)
-        token = self._job_tokens.get(ctx.account.account_key)
+        token = self._device_tokens.get(ctx.account.account_key) or self._job_tokens.get(
+            ctx.account.account_key
+        )
         if not token:
             if self.config.rolling:
-                raise RefreshRequired("Qoder 缺少 job token，需要刷新")
+                raise RefreshRequired("Qoder 缺少可用 token，需要刷新")
             token, _, error = self._resolve_job_token(creds.raw)
             if error or not token:
                 raise ApiError("Qoder 静态令牌不可用: " + (error or "empty"))
@@ -258,13 +279,47 @@ class QoderAdapter:
 
     def fetch_points(self, ctx: AccountContext, creds: Credentials) -> PointsResult:
         self.bind_http(ctx)
-        token = self._job_tokens.get(ctx.account.account_key)
+        token = self._device_tokens.get(ctx.account.account_key) or self._job_tokens.get(
+            ctx.account.account_key
+        )
         if not token:
-            return PointsResult(None, None, None, "api_unavailable", "Qoder 尚未获取 job token")
+            return PointsResult(None, None, None, "api_unavailable", "Qoder 尚未获取 token")
         current, note = self._current_points(token)
         if current is None:
             return PointsResult(None, None, "credits", "api_unavailable", note or "usage 接口不可用")
         return PointsResult(None, current, "credits", "api_field", None)
+
+    def _refresh_device_token(
+        self, raw: str
+    ) -> tuple[str | None, str | None, str | None]:
+        value = (raw or "").strip()
+        if value.startswith("dt-"):
+            return value, None, None
+        refresh = value
+        pat = ""
+        if value.startswith("{"):
+            try:
+                data = json.loads(value)
+            except ValueError:
+                return None, None, "Qoder 凭据 JSON 解析失败"
+            refresh = str(data.get("refresh_token") or data.get("refreshToken") or "").strip()
+            pat = str(data.get("pat") or data.get("personal_token") or "").strip()
+        if not refresh:
+            return None, None, "未提供 device refresh_token"
+        status, payload = self._call(
+            "POST",
+            self.config.base_url + DEVICE_REFRESH_PATH,
+            body={"refresh_token": refresh},
+        )
+        body = as_dict(payload)
+        token = _job_token(body) if status == 200 else ""
+        if not token:
+            return None, None, f"deviceToken/refresh 失败 HTTP {status}"
+        new_refresh = str(body.get("refresh_token") or body.get("refreshToken") or refresh)
+        credential = {"refresh_token": new_refresh}
+        if pat:
+            credential["pat"] = pat
+        return token, json.dumps(credential, ensure_ascii=False), None
 
     def _resolve_job_token(self, raw: str) -> tuple[str | None, str | None, str | None]:
         value = (raw or "").strip()

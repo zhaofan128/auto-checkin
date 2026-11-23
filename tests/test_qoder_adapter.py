@@ -76,6 +76,36 @@ def test_qoder_global_already_checked_is_separate(tmp_path):
     assert ctx.account.platform == "qoder_global"
 
 
+def test_qoder_cn_device_refresh_uses_device_token(tmp_path):
+    def handler(method, url, **kwargs):
+        if url.endswith("/api/v1/deviceToken/refresh"):
+            return response({"token": "dt-new", "refresh_token": "dr2"})
+        if CAMPAIGNS_PATH in url:
+            return response({"campaigns": []})
+        if USAGE_PATH in url:
+            return response({"qoderUsage": {"userQuota": {"remaining": 42}}})
+        return response({}, 404)
+
+    http = FakeHttp(handler)
+    ctx = make_context(
+        tmp_path,
+        http,
+        CN_ACCOUNT,
+        {"QODER_CN_TOKEN": json.dumps({"refresh_token": "dr1"})},
+    )
+    adapter = qoder_platform().account_adapter("cn")
+    creds = adapter.resolve_credentials(ctx)
+    rotation = adapter.refresh(ctx, creds)
+
+    assert rotation is not None
+    assert json.loads(rotation.new_value)["refresh_token"] == "dr2"
+    assert adapter._device_tokens["qoder:cn"] == "dt-new"
+    result = adapter.checkin(ctx, creds)
+    assert result.status == "skipped"
+    assert result.points is not None
+    assert result.points.current == 42
+
+
 def test_qoder_cn_refresh_writes_new_credential(tmp_path):
     def handler(method, url, **kwargs):
         if JOB_REFRESH_PATH in url:
