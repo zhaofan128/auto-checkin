@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping
 from urllib.parse import quote
 
+from src.browser.playwright_runtime import browser_checkin
 from src.core.errors import ApiError, SecretMissing
 from src.core.models import AccountRef, CheckinResult, PointsResult
 from src.core.points import normalize_points
@@ -119,7 +120,7 @@ class NewApiAdapter:
 
         stats = as_dict(status_data.get("stats"))
         current, current_note = self._current_points(ctx, session)
-        if stats.get("checked_in_today"):
+        if stats.get("checked_in_today") and not ctx.force:
             points = normalize_points(
                 gained=None,
                 current=current,
@@ -130,47 +131,89 @@ class NewApiAdapter:
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
-        turnstile_value = ""
+        turnstile_meta: dict[str, Any] | None = None
+        claim_code: int
+        claim_payload: dict[str, Any]
         if self.site.turnstile_env:
-            turnstile_value = (ctx.secrets.env.get(self.site.turnstile_env) or "").strip()
-            if not turnstile_value:
-                points = normalize_points(
-                    gained=None,
-                    current=current,
-                    unit="quota",
-                    explicit_source="turnstile_unavailable",
-                    message=(
-                        f"{self.site.turnstile_env} 未配置，"
-                        f"{self.site.platform_name} 需要 Turnstile"
-                    ),
+            manual_token = (ctx.secrets.env.get(self.site.turnstile_env) or "").strip()
+            if manual_token:
+                turnstile_meta = {
+                    "mode": "manual_token",
+                    "result": "manual_token",
+                    "manual_required": False,
+                    "token_present": True,
+                }
+                claim_code, claim_payload = self._call(
+                    ctx,
+                    "POST",
+                    self.site.base_url
+                    + "/api/user/checkin?turnstile="
+                    + quote(manual_token, safe=""),
+                    session=session,
+                    body={},
                 )
-                return CheckinResult(
-                    status="skipped",
-                    message=(
-                        f"{self.site.turnstile_env} 未配置，"
-                        f"{self.site.platform_name} 需要 Turnstile"
-                    ),
-                    points=points,
-                    skipped_reason="turnstile_unavailable",
-                    manual_required=True,
-                    turnstile={
-                        "mode": "browser_fallback",
-                        "result": "skipped",
-                        "manual_required": True,
-                        "token_present": False,
-                    },
+            else:
+                browser = browser_checkin(
+                    self.site.base_url,
+                    "/login",
+                    "/api/user/checkin",
+                    creds.raw,
                 )
+                if browser.turnstile_result != "solved":
+                    error_type = (
+                        "turnstile_timeout"
+                        if browser.turnstile_result == "timeout"
+                        else "browser_unavailable"
+                        if browser.turnstile_result == "browser_unavailable"
+                        else "browser_error"
+                    )
+                    points = normalize_points(
+                        gained=None,
+                        current=current,
+                        unit="quota",
+                        explicit_source="turnstile_unavailable",
+                        message=browser.error or "浏览器 Turnstile fallback 失败",
+                    )
+                    return CheckinResult(
+                        status="failed",
+                        message=(
+                            f"{self.site.platform_name} 浏览器 Turnstile fallback 失败: "
+                            + (browser.error or browser.turnstile_result)
+                        ),
+                        points=points,
+                        error_type=error_type,
+                        error_detail=(browser.error or "")[:200],
+                        manual_required=True,
+                        turnstile={
+                            "mode": "browser_fallback",
+                            "result": browser.turnstile_result,
+                            "attempts": browser.attempts,
+                            "clicks": browser.clicks,
+                            "duration_ms": browser.duration_ms,
+                            "manual_required": True,
+                            "token_present": False,
+                        },
+                    )
+                claim_code = browser.status
+                claim_payload = browser.payload
+                turnstile_meta = {
+                    "mode": "browser_fallback",
+                    "result": "solved",
+                    "attempts": browser.attempts,
+                    "clicks": browser.clicks,
+                    "duration_ms": browser.duration_ms,
+                    "manual_required": False,
+                    "token_present": True,
+                }
+        else:
+            claim_code, claim_payload = self._call(
+                ctx,
+                "POST",
+                self.site.base_url + "/api/user/checkin",
+                session=session,
+                body={},
+            )
 
-        checkin_url = self.site.base_url + "/api/user/checkin"
-        if turnstile_value:
-            checkin_url += "?turnstile=" + quote(turnstile_value, safe="")
-        claim_code, claim_payload = self._call(
-            ctx,
-            "POST",
-            checkin_url,
-            session=session,
-            body={},
-        )
         claim_data = as_dict(claim_payload.get("data"))
         claim_message = str(claim_payload.get("message") or claim_payload.get("message_key") or "")
         if claim_payload.get("success") is True:
@@ -199,7 +242,12 @@ class NewApiAdapter:
                     message="签到响应未返回 quota_awarded"
                     + (f"；{current_note}" if current_note else ""),
                 )
-            return CheckinResult(status="success", message=claim_message or "签到成功", points=points)
+            return CheckinResult(
+                status="success",
+                message=claim_message or "签到成功",
+                points=points,
+                turnstile=turnstile_meta,
+            )
 
         if "已签到" in claim_message or "already" in claim_message.lower():
             points = normalize_points(
@@ -209,7 +257,12 @@ class NewApiAdapter:
                 explicit_source="api_unavailable",
                 message="签到响应未返回 quota_awarded",
             )
-            return CheckinResult(status="already_checked", message="今日已签到", points=points)
+            return CheckinResult(
+                status="already_checked",
+                message="今日已签到",
+                points=points,
+                turnstile=turnstile_meta,
+            )
 
         points = normalize_points(
             gained=None,
@@ -225,6 +278,7 @@ class NewApiAdapter:
             points=points,
             error_type="api_error",
             error_detail=claim_message[:200],
+            turnstile=turnstile_meta,
         )
 
     def fetch_points(self, ctx: AccountContext, creds: Credentials) -> PointsResult:

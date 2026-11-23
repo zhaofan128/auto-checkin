@@ -1,5 +1,6 @@
 import pytest
 
+from src.browser.playwright_runtime import BrowserCheckinResult
 from src.platforms.newapi import newapi_platforms
 from tests.fakes import FakeHttp, make_context, response
 
@@ -83,7 +84,23 @@ def test_token_site_success(tmp_path, site_code):
     assert result.points.source == "api_field"
 
 
-def test_seekai_without_turnstile_skips(tmp_path):
+def test_seekai_without_manual_token_uses_browser_fallback(tmp_path, monkeypatch):
+    import src.platforms.newapi.base as module
+
+    monkeypatch.setattr(
+        module,
+        "browser_checkin",
+        lambda *args, **kwargs: BrowserCheckinResult(
+            ok=True,
+            status=200,
+            payload={"success": True, "data": {"quota_awarded": 10}},
+            turnstile_result="solved",
+            attempts=1,
+            clicks=0,
+            duration_ms=100,
+            token_present=True,
+        ),
+    )
     platform = platform_map()["seekai"]
     adapter = platform.account_adapter("default")
     http = FakeHttp(handler_for())
@@ -91,15 +108,46 @@ def test_seekai_without_turnstile_skips(tmp_path):
     creds = adapter.resolve_credentials(ctx)
     result = adapter.checkin(ctx, creds)
 
-    assert result.status == "skipped"
-    assert result.skipped_reason == "turnstile_unavailable"
+    assert result.status == "success"
     assert result.points is not None
-    assert result.points.gained is None
+    assert result.points.gained == 10
     assert result.points.current == 1000
-    assert result.points.source == "turnstile_unavailable"
-    assert "SEEKAI_TURNSTILE_TOKEN 未配置" in result.message
     assert result.turnstile is not None
     assert result.turnstile["mode"] == "browser_fallback"
+    assert result.turnstile["result"] == "solved"
+
+
+def test_seekai_browser_timeout_is_failed(tmp_path, monkeypatch):
+    import src.platforms.newapi.base as module
+
+    monkeypatch.setattr(
+        module,
+        "browser_checkin",
+        lambda *args, **kwargs: BrowserCheckinResult(
+            ok=False,
+            status=0,
+            payload={},
+            turnstile_result="timeout",
+            attempts=3,
+            clicks=2,
+            duration_ms=90000,
+            error="Turnstile 验证超时",
+            token_present=False,
+        ),
+    )
+    platform = platform_map()["seekai"]
+    adapter = platform.account_adapter("default")
+    http = FakeHttp(handler_for())
+    ctx = make_context(tmp_path, http, adapter.account, {"SEEKAI_TOKEN": "seekai-token"})
+    creds = adapter.resolve_credentials(ctx)
+    result = adapter.checkin(ctx, creds)
+
+    assert result.status == "failed"
+    assert result.error_type == "turnstile_timeout"
+    assert result.manual_required is True
+    assert result.points is not None
+    assert result.points.current == 1000
+    assert result.points.source == "turnstile_unavailable"
 
 
 def test_newapi_already_checked_reads_current_but_not_gained(tmp_path):

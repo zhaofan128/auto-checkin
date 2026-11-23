@@ -32,7 +32,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +40,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Probe WorkBuddy
+      - name: Install browser runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Probe platform
         env:
           WB_RT: ${{ secrets.WB_RT }}
           TRAE_CREDS: ${{ secrets.TRAE_CREDS }}
@@ -64,10 +70,11 @@ jobs:
           SEEKAI_TURNSTILE_TOKEN: ${{ secrets.SEEKAI_TURNSTILE_TOKEN }}
           BENST_TOKEN: ${{ secrets.BENST_TOKEN }}
           GH_PAT: ${{ secrets.GH_PAT }}
+          KK_HEADLESS: '0'
         run: |
           set -euo pipefail
           if [ "${{ inputs.apply }}" = "true" ]; then
-            python tools/probe_platform.py --platform "${{ inputs.platform }}" --apply
+            xvfb-run -a python tools/probe_platform.py --platform "${{ inputs.platform }}" --apply
           else
-            python tools/probe_platform.py --platform "${{ inputs.platform }}"
+            xvfb-run -a python tools/probe_platform.py --platform "${{ inputs.platform }}"
           fi

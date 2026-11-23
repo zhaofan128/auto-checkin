@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 from urllib.parse import quote
 
+from src.browser.playwright_runtime import browser_checkin
 from src.browser.turnstile import manual_token_from_env
 from src.core.errors import ApiError
 from src.core.models import AccountRef, CheckinResult, PointsResult
@@ -80,7 +81,7 @@ class KKAdapter:
                 error_type="api_error",
             )
 
-        if stats.get("checked_in_today"):
+        if stats.get("checked_in_today") and not ctx.force:
             points = normalize_points(
                 gained=None,
                 current=current,
@@ -91,38 +92,100 @@ class KKAdapter:
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
         manual_token = manual_token_from_env(ctx.secrets.env)
-        if not manual_token:
+        if manual_token:
+            claim_code, claim_payload = self._call(
+                ctx,
+                "POST",
+                base + "/api/user/checkin?turnstile=" + quote(manual_token, safe=""),
+                token=creds.raw,
+                body={},
+            )
+            return self._handle_claim(
+                ctx,
+                base,
+                creds,
+                current,
+                current_note,
+                claim_code,
+                claim_payload,
+                turnstile={
+                    "mode": "manual_token",
+                    "result": "manual_token",
+                    "manual_required": False,
+                    "token_present": True,
+                },
+            )
+
+        browser = browser_checkin(
+            base,
+            "/login",
+            "/api/user/checkin",
+            creds.raw,
+        )
+        if browser.turnstile_result != "solved":
+            error_type = (
+                "turnstile_timeout"
+                if browser.turnstile_result == "timeout"
+                else "browser_unavailable"
+                if browser.turnstile_result == "browser_unavailable"
+                else "browser_error"
+            )
             points = normalize_points(
                 gained=None,
                 current=current,
                 unit="quota",
                 explicit_source="turnstile_unavailable",
-                message=(
-                    "KK_TURNSTILE_TOKEN 未配置，浏览器 fallback 在 GitHub Actions "
-                    "环境通过率极低"
-                ),
+                message=browser.error or "浏览器 Turnstile fallback 失败",
             )
             return CheckinResult(
-                status="skipped",
-                message="KK_TURNSTILE_TOKEN 未配置，浏览器 fallback 在 GitHub Actions 环境通过率极低",
+                status="failed",
+                message="KK 浏览器 Turnstile fallback 失败: " + (browser.error or browser.turnstile_result),
                 points=points,
-                skipped_reason="turnstile_unavailable",
+                error_type=error_type,
+                error_detail=(browser.error or "")[:200],
                 manual_required=True,
                 turnstile={
                     "mode": "browser_fallback",
-                    "result": "skipped",
+                    "result": browser.turnstile_result,
+                    "attempts": browser.attempts,
+                    "clicks": browser.clicks,
+                    "duration_ms": browser.duration_ms,
                     "manual_required": True,
                     "token_present": False,
                 },
             )
 
-        claim_code, claim_payload = self._call(
+        return self._handle_claim(
             ctx,
-            "POST",
-            base + "/api/user/checkin?turnstile=" + quote(manual_token, safe=""),
-            token=creds.raw,
-            body={},
+            base,
+            creds,
+            current,
+            current_note,
+            browser.status,
+            browser.payload,
+            turnstile={
+                "mode": "browser_fallback",
+                "result": "solved",
+                "attempts": browser.attempts,
+                "clicks": browser.clicks,
+                "duration_ms": browser.duration_ms,
+                "manual_required": False,
+                "token_present": True,
+            },
         )
+
+    def _handle_claim(
+        self,
+        ctx: AccountContext,
+        base: str,
+        creds: Credentials,
+        current: int | float | None,
+        current_note: str | None,
+        claim_code: int,
+        claim_payload: Mapping[str, Any],
+        *,
+        turnstile: dict[str, Any],
+    ) -> CheckinResult:
         claim_data = as_dict(claim_payload.get("data"))
         claim_message = str(claim_payload.get("message") or claim_payload.get("message_key") or "")
         if claim_payload.get("success") is True:
@@ -154,12 +217,7 @@ class KKAdapter:
                 status="success",
                 message="签到成功",
                 points=points,
-                turnstile={
-                    "mode": "manual_token",
-                    "result": "manual_token",
-                    "manual_required": False,
-                    "token_present": True,
-                },
+                turnstile=turnstile,
             )
 
         if "已签到" in claim_message or "already" in claim_message.lower():
@@ -170,7 +228,12 @@ class KKAdapter:
                 explicit_source="api_unavailable",
                 message="签到响应未返回本次积分",
             )
-            return CheckinResult(status="already_checked", message="今日已签到", points=points)
+            return CheckinResult(
+                status="already_checked",
+                message="今日已签到",
+                points=points,
+                turnstile=turnstile,
+            )
 
         points = normalize_points(
             gained=None,
@@ -185,6 +248,7 @@ class KKAdapter:
             points=points,
             error_type="api_error",
             error_detail=claim_message[:200],
+            turnstile=turnstile,
         )
 
     def fetch_points(self, ctx: AccountContext, creds: Credentials) -> PointsResult:
