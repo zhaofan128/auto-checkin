@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Literal, Mapping
+from urllib.parse import quote
 
 from src.core.errors import ApiError, SecretMissing
 from src.core.models import AccountRef, CheckinResult, PointsResult
@@ -34,6 +35,7 @@ class NewApiSite:
     token_spec: SecretSpec | None = None
     schedule_profiles: frozenset[str] = frozenset({"morning", "midmorning", "afternoon", "manual"})
     quota_window: bool = False
+    turnstile_env: str | None = None
 
     @property
     def account(self) -> AccountRef:
@@ -128,10 +130,44 @@ class NewApiAdapter:
             )
             return CheckinResult(status="already_checked", message="今日已签到", points=points)
 
+        turnstile_value = ""
+        if self.site.turnstile_env:
+            turnstile_value = (ctx.secrets.env.get(self.site.turnstile_env) or "").strip()
+            if not turnstile_value:
+                points = normalize_points(
+                    gained=None,
+                    current=current,
+                    unit="quota",
+                    explicit_source="turnstile_unavailable",
+                    message=(
+                        f"{self.site.turnstile_env} 未配置，"
+                        f"{self.site.platform_name} 需要 Turnstile"
+                    ),
+                )
+                return CheckinResult(
+                    status="skipped",
+                    message=(
+                        f"{self.site.turnstile_env} 未配置，"
+                        f"{self.site.platform_name} 需要 Turnstile"
+                    ),
+                    points=points,
+                    skipped_reason="turnstile_unavailable",
+                    manual_required=True,
+                    turnstile={
+                        "mode": "browser_fallback",
+                        "result": "skipped",
+                        "manual_required": True,
+                        "token_present": False,
+                    },
+                )
+
+        checkin_url = self.site.base_url + "/api/user/checkin"
+        if turnstile_value:
+            checkin_url += "?turnstile=" + quote(turnstile_value, safe="")
         claim_code, claim_payload = self._call(
             ctx,
             "POST",
-            self.site.base_url + "/api/user/checkin",
+            checkin_url,
             session=session,
             body={},
         )

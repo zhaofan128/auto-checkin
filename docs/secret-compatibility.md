@@ -79,11 +79,16 @@ credential. It must be configured as a host Secret (or supplied for one manual
 run) if KK is to check in; without it KK is skipped with
 `turnstile_unavailable`.
 
-Additional host Secret to configure:
+Additional host Secrets to configure:
 
 ```text
 KK_TURNSTILE_TOKEN
+SEEKAI_TURNSTILE_TOKEN
 ```
+
+SeekAI's token login still requires Turnstile at check-in. Without
+`SEEKAI_TURNSTILE_TOKEN` it is skipped with `turnstile_unavailable`; it is not
+treated as a normal New-API password site.
 
 Optional per-site overrides for the four password sites are listed above. They
 are not required when the global `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` works.

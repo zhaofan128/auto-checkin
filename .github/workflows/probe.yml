@@ -61,6 +61,7 @@ jobs:
           CHECKIN_USERNAME_KEMENG: ${{ secrets.CHECKIN_USERNAME_KEMENG }}
           CHECKIN_PASSWORD_KEMENG: ${{ secrets.CHECKIN_PASSWORD_KEMENG }}
           SEEKAI_TOKEN: ${{ secrets.SEEKAI_TOKEN }}
+          SEEKAI_TURNSTILE_TOKEN: ${{ secrets.SEEKAI_TURNSTILE_TOKEN }}
           BENST_TOKEN: ${{ secrets.BENST_TOKEN }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |

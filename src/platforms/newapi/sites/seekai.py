@@ -16,6 +16,7 @@ SITE = NewApiSite(
     base_url="https://seekai.cc",
     auth_mode="token",
     token_spec=TOKEN_SPEC,
+    turnstile_env="SEEKAI_TURNSTILE_TOKEN",
 )
 PLATFORM = NewApiPlatform(SITE)
 

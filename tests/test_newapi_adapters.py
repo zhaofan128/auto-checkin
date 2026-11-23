@@ -16,7 +16,12 @@ def password_env() -> dict[str, str]:
 
 
 def token_env(site_code: str) -> dict[str, str]:
-    return {"SEEKAI_TOKEN": "seekai-token"} if site_code == "seekai" else {"BENST_TOKEN": "benst-token"}
+    if site_code == "seekai":
+        return {
+            "SEEKAI_TOKEN": "seekai-token",
+            "SEEKAI_TURNSTILE_TOKEN": "seekai-turnstile",
+        }
+    return {"BENST_TOKEN": "benst-token"}
 
 
 def handler_for(checked: bool = False, current_data=None):
@@ -76,6 +81,25 @@ def test_token_site_success(tmp_path, site_code):
     assert result.points.gained == 10
     assert result.points.current == 1000
     assert result.points.source == "api_field"
+
+
+def test_seekai_without_turnstile_skips(tmp_path):
+    platform = platform_map()["seekai"]
+    adapter = platform.account_adapter("default")
+    http = FakeHttp(handler_for())
+    ctx = make_context(tmp_path, http, adapter.account, {"SEEKAI_TOKEN": "seekai-token"})
+    creds = adapter.resolve_credentials(ctx)
+    result = adapter.checkin(ctx, creds)
+
+    assert result.status == "skipped"
+    assert result.skipped_reason == "turnstile_unavailable"
+    assert result.points is not None
+    assert result.points.gained is None
+    assert result.points.current == 1000
+    assert result.points.source == "turnstile_unavailable"
+    assert "SEEKAI_TURNSTILE_TOKEN 未配置" in result.message
+    assert result.turnstile is not None
+    assert result.turnstile["mode"] == "browser_fallback"
 
 
 def test_newapi_already_checked_reads_current_but_not_gained(tmp_path):
