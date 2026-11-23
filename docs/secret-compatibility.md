@@ -82,6 +82,17 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 `GH_PAT` already exists in the host repo and is required for rolling write-back.
 
+Optional Qoder desktop identity:
+
+```text
+QODER_CN_MACHINE_TOKEN / QODER_CN_MACHINE_TYPE
+QODER_GLOBAL_MACHINE_TOKEN / QODER_GLOBAL_MACHINE_TYPE
+```
+
+Qoder's daily credit campaign requires the official desktop
+`Cosy-MachineToken` / `Cosy-MachineType`. Without it, usage still works but
+campaigns return only `VIEW_DETAILS`.
+
 Optional emergency Turnstile overrides:
 
 ```text
