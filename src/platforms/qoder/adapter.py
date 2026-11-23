@@ -163,10 +163,19 @@ class QoderAdapter:
                 }
             )
             kind = self._token_kind(creds.raw)
+            shape = ""
+            if campaigns and isinstance(campaigns[0], dict):
+                first = campaigns[0]
+                benefit = as_dict(first.get("benefit"))
+                shape = (
+                    f"; keys={sorted(first.keys())}; "
+                    f"benefit_keys={sorted(benefit.keys())}; "
+                    f"amount={first_number(benefit.get('amount'), first.get('amount'))}"
+                )
             diagnostic = (
                 f"无签到活动; campaigns={len(campaigns)}; "
                 f"actions={actions}; statuses={statuses}; token={kind}; "
-                f"machine={self._machine_present()}; usage={current_note or 'ok'}"
+                f"machine={self._machine_present()}; usage={current_note or 'ok'}{shape}"
             )
             points = normalize_points(
                 gained=None,
