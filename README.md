@@ -15,7 +15,7 @@
 | 平台适配器 | 12（Qoder 一个模块，CN/Global 两个账户） |
 | 已验证（verified） | 12 |
 | 受 Secret 阻塞（blocked_no_secret） | 1：SeekAI（`SEEKAI_TOKEN` 返回 401） |
-| 测试 | 97 通过 |
+| 测试 | 99 通过 |
 | 运行时 | Python 3.12 |
 | 旧 kk 仓库 | 仍在运行，未归档 |
 
@@ -101,6 +101,9 @@ python3 -m playwright install chromium
 
 python3 -m pytest tests -q
 python3 -m compileall -q src tests tools
+
+# 统一入口
+python3 -m src.main --profile manual --platform workbuddy --dry-run
 ```
 
 ### 运行单平台探针
@@ -202,7 +205,8 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 - `history/events.jsonl`：结构化事件，唯一事实来源，纯追加。
 - `history/run.log`：人类可读摘要，纯追加。
 - `history/archive/kk-auto-checkin/run.log`：旧 kk 历史日志归档。
-- 新 core 写入不截断；旧 workflow 的日志收敛在主 workflow 替换时完成。
+- 新 core 写入不截断；旧 workflow 的 `tail -n 120 + mv` 已移除，改为纯追加。
+- 旧 kk 历史日志已归档到 `history/archive/kk-auto-checkin/`，含 SHA-256 `META.json`。
 - 状态按账户独立保存，写入使用临时文件 + `os.replace`，并加账户级文件锁。
 - Qoder CN/Global 使用两个独立状态文件、两把锁、两个 `platform` 日志值。
 - 日志不记录 Token/Cookie/密码；账号只保留脱敏值。
@@ -236,14 +240,15 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 - 13 个账户目标适配器
 - 统一 core：Secret 兼容、状态、锁、刷新单飞、日志、积分、脱敏、重试、限流
-- 97 个测试
+- 99 个测试
 - 12 个账户目标真实响应验证
-- 旧 kk 历史日志归档路径与平台矩阵
+- `src/main.py` 单主入口
+- 旧 kk 历史日志归档与 SHA-256 `META.json`
+- 旧 workflow 日志截断逻辑移除，改为纯追加
 
 待完成：
 
-- `src/main.py` 单主入口与主 workflow 收敛
-- 旧 workflow 的日志截断逻辑移除
+- 主 workflow 收敛到单 job
 - SeekAI 的 `SEEKAI_TOKEN` 更新（当前 401）
 - 13/13 验证后停用旧 kk 仓库
 

@@ -148,7 +148,6 @@ jobs:
         run: |
           mkdir -p history
           echo "$(date -u +'%Y-%m-%d %H:%M') UTC  daily-checkin 运行一次" >> history/run.log
-          tail -n 120 history/run.log > /tmp/run.log && mv /tmp/run.log history/run.log
       - name: 提交
         run: |
           git config user.name "github-actions[bot]"

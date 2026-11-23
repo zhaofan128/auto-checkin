@@ -3,4 +3,5 @@ __pycache__/
 .env
 *.log
 !history/run.log
+!history/archive/**/run.log
 .probe/

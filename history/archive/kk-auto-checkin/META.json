@@ -1,0 +1,12 @@
+{
+  "source_repo": "zhaofan128/kk-auto-checkin",
+  "source_commit": "7c3a04d9f96f81f707d24667152d13f5ee96d743",
+  "source_path": "/workspace/kk-auto-checkin/history/run.log",
+  "archived_path": "history/archive/kk-auto-checkin/run.log",
+  "sha256": "575ca7894e5b1f5aa7a3cc13c294b70f7c52bb7f8e3cd1543c1a53391ec6c51a",
+  "bytes": 96,
+  "lines": 2,
+  "archived_at": "2026-11-23T18:53:29+08:00",
+  "backup_id": null,
+  "note": "historical only; not parsed into events.jsonl"
+}
