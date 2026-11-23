@@ -1,99 +1,262 @@
-# auto-checkin · 每天自动签到（跑在 GitHub 云端）
+# auto-checkin
 
-用 GitHub Actions 每天定时给 **WorkBuddy**（签到领积分 + 派 Buddy 旅行）和 **TraeWork CN**（签到领积分）打卡。
+统一的 AI 站点自动签到项目。本仓库是合并后的宿主仓库：
 
-**你不需要开着电脑，也不需要开着手机** —— 一切跑在 GitHub 的服务器上。
+- 原 `auto-checkin`：WorkBuddy、TraeWork CN、Qoder CN、Qoder Global、MiniMax Code、LobsterAI
+- 原 `kk-auto-checkin`：KK、DGB、AIAIAI、帮帮程序员、可萌、SeekAI、BENST
 
-## 🖥 桌面版（不想碰命令行？）
+合并后共用一套 Python core、账户注册表、日志规范和平台适配器。最终目标是单一项目根、单一主入口、单一调度；当前迁移状态见下文“迁移状态”。
 
-到 [Releases](https://github.com/zhaofan128/auto-checkin/releases) 下载 `AutoCheckin.exe`（绿色单文件，无需安装 Python）：
+## 当前状态
 
-液态玻璃界面 · 果冻开关 · **一键开启**：
+| 指标 | 值 |
+|---|---|
+| 账户目标 | 13 |
+| 平台适配器 | 12（Qoder 一个模块，CN/Global 两个账户） |
+| 已验证（verified） | 11 |
+| 受 Secret 阻塞（blocked_no_secret） | 2：SeekAI、KK |
+| 测试 | 95 通过 |
+| 运行时 | Python 3.12 |
+| 旧 kk 仓库 | 仍在运行，未归档 |
 
-1. 双击运行，自动识别本机已保存的 GitHub Token（无需手动输入）
-2. 点「🚀 一键开启」—— 提取本机凭据、写入 Secrets、开启自动轮换，一次搞定
-3. 仪表盘随时看两个平台的余额 / 今日签到 / 猫猫旅行状态
-4. 果冻开关独立控制 WorkBuddy / TraeWork 的云端自动签到启停
-5. 「💻 立即签到」本机直签（幂等，顺带给令牌续期）
+- WorkBuddy、TraeWork、Qoder CN/Global、MiniMax、LobsterAI、DGB、AIAIAI、帮帮程序员、可萌、BENST 已完成真实响应探测。
+- SeekAI 和 KK 今天返回了真实 `already_checked` 与当前余额，但下一次未签到时会要求 Turnstile：
+  - SeekAI 需要 `SEEKAI_TURNSTILE_TOKEN`
+  - KK 需要 `KK_TURNSTILE_TOKEN`
+- 缺少人工 Turnstile token 时，这两个账户返回 `skipped` + `turnstile_unavailable`，不会伪造成功。
+- 旧 kk 仓库只作为新宿主验证完成前的临时兜底；13/13 验证完成后停用，不长期双跑。
 
-> Token 保存在本机 `%APPDATA%\AutoCheckin\config.json`，不上传到任何第三方。
-> 需要 Windows 10+ 且已安装 Edge WebView2 运行时（绝大多数系统自带）。
-> 源码在 [app/](app/) 目录，可用 `pyinstaller` 自行打包。
+完整逐行状态与真实脱敏事件：
 
-## ✨ 特性
+- [docs/platform-matrix.md](docs/platform-matrix.md)
+- [docs/verified-probes.md](docs/verified-probes.md)
 
-- **设备全离线**：作业在 GitHub 的 runner 上执行，跟你本机、客户端是否运行完全无关。
-- **令牌永不过期**（重点）：WorkBuddy 的长效令牌名义上只有 30 天，但服务端**每次刷新都会下发一个新令牌**。本仓库在每次签到后自动把新令牌写回 Secret，形成滚动续期——只要定时任务还在跑，就一直有效。TraeWork 同理（它的令牌约半年，同样会滚动）。
-- **一天三次，幂等**：06:20 / 09:10 / 13:30（北京时间）各跑一次，签过就跳过，不会重复领；一次失败后面还有两次补。
-- **凭据零明文**：脚本只从环境变量读取，仓库里没有任何密钥。
-- **自动保活**：GitHub 会停用「60 天无提交」仓库的定时任务，本项目每天第一次运行会自动提交一条记录（`history/run.log`），避免被停用。
+## 架构
 
-## 🚀 三步上手
-
-### 1. Fork 本仓库（点右上角 Fork）
-
-### 2. 在本机取凭据
-
-在**已登录 WorkBuddy 和 TraeWork 桌面端的电脑上**运行：
-
-```bash
-git clone <你的仓库地址> && cd auto-checkin
-python tools/get_creds.py
+```text
+src/
+├─ core/                 # 配置、Secret、状态、锁、刷新、日志、积分、HTTP、重试、限流
+├─ browser/              # Turnstile 检测/降级策略
+├─ config/
+│  ├─ settings.py
+│  └─ registry.py        # 12 个适配器 / 13 个账户目标
+└─ platforms/
+   ├─ base.py            # AccountAdapter / PlatformAdapter 接口
+   ├─ workbuddy/
+   ├─ traework/          # 含 P-256 设备签名 crypto.py
+   ├─ qoder/             # CN / Global 独立账户
+   ├─ minimax/
+   ├─ lobsterai/
+   ├─ kk/
+   └─ newapi/            # 共享 New-API 基类 + 6 个站点
+      └─ sites/
+         ├─ dgb.py
+         ├─ aiaiai.py
+         ├─ helpcoder.py
+         ├─ kemeng.py
+         ├─ seekai.py
+         └─ benst.py
 ```
 
-脚本会打印两段内容：
+每个适配器负责：
 
-- `WB_RT` —— 一长串 JWT
-- `TRAE_CREDS` —— 一段 JSON
+- 登录态读取
+- 签到
+- 积分字段解析
+- 账户标识
+- 错误类型与降级
 
-> 脚本纯标准库，只读取本机客户端的登录态文件，不上传任何数据。支持 Windows / macOS。
+## 账户与验证状态
 
-### 3. 填进 GitHub Secrets
+以 2026-11-23 的真实探测结果为准；余额会变化，具体以最新日志为准。
 
-Settings → Secrets and variables → Actions → **New repository secret**，建三个：
+| 账户目标 | 状态 | points_gained | points_current | points_source |
+|---|---|---:|---:|---|
+| WorkBuddy | verified | 100 | 3500 | api_field |
+| TraeWork CN | verified | null | 100 | api_unavailable |
+| Qoder CN | verified | null | null | api_unavailable |
+| Qoder Global | verified | null | null | api_unavailable |
+| MiniMax Code | verified | 400 | null | api_unavailable |
+| LobsterAI | verified | 100 | null | api_unavailable |
+| DGB | verified | null | 112238913 | api_unavailable |
+| AIAIAI | verified | null | 38636 | api_unavailable |
+| 帮帮程序员 | verified | null | 160000000 | api_unavailable |
+| 可萌 | verified | null | 1008044 | api_unavailable |
+| BENST | verified | null | 773199 | api_unavailable |
+| SeekAI | blocked_no_secret | null | 18999999 | api_unavailable |
+| KK | blocked_no_secret | null | 997759 | api_unavailable |
 
-| Secret | 内容 | 用途 |
-|---|---|---|
-| `WB_RT` | 上一步打印的长串 JWT | WorkBuddy 长效令牌 |
-| `TRAE_CREDS` | 上一步打印的 JSON | TraeWork 凭据（刷新令牌 + 设备密钥） |
-| `GH_PAT` *可选* | 一个能写 Secrets 的 GitHub 令牌（勾选 `repo`） | 用于自动写回轮换后的新令牌 |
+说明：
 
-> 不填 `GH_PAT` 也能正常签到，只是令牌不会自动轮换，WorkBuddy 那条约 30 天后需要手动更新一次。
+- DGB/AIAIAI/帮帮程序员/可萌/BENST/SeekAI/KK 当天均为 `already_checked`，所以 `points_gained=null`，当前余额来自真实接口。
+- 拿不到当前总额时写 `null`，没有用 0 或猜测值。
+- New-API 的 `total_quota` 是累计值，禁止当作当前余额；当前余额优先取 `/api/user/self`、`/api/data/self`，再尝试 `/api/usage/token/`。
 
-### 4. 验证
+## 快速开始
 
-Actions 页 → **daily-checkin** → **Run workflow**（手动跑一次）。两个 job 全绿即可，之后就不用管了。
+要求 Python 3.12。
 
-## ⏰ 执行时间
+```bash
+python3 -m pytest tests -q
+python3 -m compileall -q src tests tools
+```
 
-cron 用 UTC，对应北京时间：
+### 运行单平台探针
 
-| UTC | 北京时间 |
-|---|---|
-| 22:20 | 06:20 |
-| 01:10 | 09:10 |
-| 05:30 | 13:30 |
+```bash
+# dry-run：只查状态/积分，不执行签到
+python3 tools/probe_platform.py --platform workbuddy
 
-GitHub 高峰期可能延迟几分钟到几十分钟，属正常。
+# 真正签到
+python3 tools/probe_platform.py --platform workbuddy --apply
+```
 
-## ❓ 常见问题
+`--platform` 可选值：
 
-**TraeWork 桌面端被踢下线了？**
-续期会生成新的会话，官方机制会让其他客户端重新登录。重新登录一次即可，不影响签到。
+```text
+workbuddy
+traework
+qoder_cn
+qoder_global
+minimax
+lobsterai
+kk
+dgb
+aiaiai
+helpcoder
+kemeng
+seekai
+benst
+```
 
-**某个 job 失败了？**
-GitHub 会给仓库所有者发邮件。多数情况是令牌失效，重新跑一次 `tools/get_creds.py` 更新对应 Secret 即可。
+探针默认写入 `.probe/`，不会修改宿主 `history/run.log`。
 
-**长期不用会停吗？**
-不会。每天第一次运行会自动提交 `history/run.log`，仓库始终有活跃提交。
+### GitHub Actions 探针
 
-**只想签其中一个？**
-删掉 `.github/workflows/checkin.yml` 里对应的 job 就行。
+`.github/workflows/probe.yml` 提供手动入口：
 
-## ⚠️ 说明
+- Actions → `probe-platform` → Run workflow
+- 选择平台、是否 `apply`
+- 输出为脱敏后的 JSON 事件，不含 Token/Cookie
 
-- 本项目通过调用官方的公开 HTTP 接口完成签到，不登录网页、不模拟点击。
-- 令牌等同账号钥匙：Secrets 是加密的，fork 后需要自己填；请妥善保管本机的 `tools/get_creds.py` 输出。
-- 仅供个人自动化使用，请遵守对应平台的用户协议。
+## Secrets
+
+所有 Secret 只通过环境变量/Secrets 读取，仓库中没有明文。
+
+### 自动签到所需
+
+```text
+WB_RT
+TRAE_CREDS
+QODER_CN_TOKEN
+QODER_GLOBAL_TOKEN
+MM_CREDS
+LOBSTER_CREDS
+KK_TOKEN
+CHECKIN_USERNAME
+CHECKIN_PASSWORD
+SEEKAI_TOKEN
+BENST_TOKEN
+GH_PAT
+```
+
+- `GH_PAT` 需要可写 Secrets，用于 WorkBuddy/TraeWork/Qoder CN/MiniMax/LobsterAI 的滚动令牌写回。
+- 没有 `GH_PAT` 写权限时，滚动账户返回 `skipped`，`skipped_reason=secret_writeback_unavailable`。
+
+### Turnstile 人工 token
+
+```text
+KK_TURNSTILE_TOKEN
+SEEKAI_TURNSTILE_TOKEN
+```
+
+这两个 token 短期有效，无法从其他 Secret 推导。缺失时：
+
+- KK：`skipped` + `turnstile_unavailable`
+- SeekAI：`skipped` + `turnstile_unavailable`
+
+### 四个密码站点的逐站覆盖（可选）
+
+```text
+CHECKIN_USERNAME_DGB / CHECKIN_PASSWORD_DGB
+CHECKIN_USERNAME_AIAIAI / CHECKIN_PASSWORD_AIAIAI
+CHECKIN_USERNAME_HELPCODER / CHECKIN_PASSWORD_HELPCODER
+CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
+```
+
+未配置时回退到 `CHECKIN_USERNAME` / `CHECKIN_PASSWORD`。
+
+### 键名兼容
+
+新统一别名优先，旧键名回退；旧键名不会被删除或强制改名。完整规则见：
+
+- [docs/secret-compatibility.md](docs/secret-compatibility.md)
+
+## 日志与状态
+
+- `history/events.jsonl`：结构化事件，唯一事实来源，纯追加。
+- `history/run.log`：人类可读摘要，纯追加。
+- `history/archive/kk-auto-checkin/run.log`：旧 kk 历史日志归档。
+- 新 core 写入不截断；旧 workflow 的日志收敛在主 workflow 替换时完成。
+- 状态按账户独立保存，写入使用临时文件 + `os.replace`，并加账户级文件锁。
+- Qoder CN/Global 使用两个独立状态文件、两把锁、两个 `platform` 日志值。
+- 日志不记录 Token/Cookie/密码；账号只保留脱敏值。
+
+锁的适用边界：
+
+- `flock` 只保护同一 runner/本机进程。
+- 不能跨 GitHub Actions step/job 传递。
+- 跨 job 只能靠单 job + `concurrency.group` 串行。
+
+详见 [docs/refresh-locking.md](docs/refresh-locking.md)。
+
+## 调度
+
+当前线上仍使用原有 `.github/workflows/checkin.yml`（5 个旧 job），新 core 通过 `probe-platform` 手动验证。主入口/主调度收敛是下一步工作；在完成前：
+
+- 旧 kk 仓库定时任务不停。
+- 旧 auto 仓库 workflow 继续作为在线兜底。
+- 新宿主完成 13/13 验证后再替换。
+
+新注册表已定义 profile：
+
+- `quota`：BENST 02:00/02:10 配额窗口
+- `qoder`：Qoder CN/Global
+- `morning` / `midmorning` / `afternoon`：全量
+- `manual`：手动探针
+
+## 迁移状态
+
+已完成：
+
+- 13 个账户目标适配器
+- 统一 core：Secret 兼容、状态、锁、刷新单飞、日志、积分、脱敏、重试、限流
+- 95 个测试
+- 11 个账户目标真实响应验证
+- 旧 kk 历史日志归档路径与平台矩阵
+
+待完成：
+
+- `src/main.py` 单主入口与主 workflow 收敛
+- 旧 workflow 的日志截断逻辑移除
+- SeekAI / KK 的 Turnstile 人工 token 配置
+- 13/13 验证后停用旧 kk 仓库
+
+## 开发
+
+新增平台适配器时：
+
+1. 在 `src/platforms/<platform>/` 实现 `AccountAdapter`。
+2. 在 `src/config/registry.py` 注册 `AccountSpec`。
+3. 在 `docs/platform-matrix.md` 增加行。
+4. 至少补一个成功/降级单元测试。
+5. 跑全量测试和 `probe_platform.py`。
+
+## 安全
+
+- 不要把 Token、Cookie、密码写入代码、日志、Issue 或提交。
+- 如果 Token 曾出现在公开对话/截图中，请立即轮换。
+- 轮换 `GH_PAT` 后，同步更新宿主仓库 Secret，否则滚动写回会失败。
+- 仅用于个人自动化，请遵守各平台用户协议。
 
 MIT License。
