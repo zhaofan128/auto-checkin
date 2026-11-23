@@ -190,6 +190,8 @@ class QoderAdapter:
                 benefit = as_dict(first.get("benefit"))
                 shape = (
                     f"; keys={sorted(first.keys())}; "
+                    f"campaign_key={str(first.get('campaignKey') or '')[:80]}; "
+                    f"placements={str(first.get('placements') or '')[:80]}; "
                     f"benefit_keys={sorted(benefit.keys())}; "
                     f"amount={first_number(benefit.get('amount'), first.get('amount'))}"
                 )
