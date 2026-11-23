@@ -163,6 +163,8 @@ GH_PAT
 - `GH_PAT` 需要可写 Secrets，用于 WorkBuddy/TraeWork/Qoder CN/MiniMax/LobsterAI 的滚动令牌写回。
 - 没有 `GH_PAT` 写权限时，滚动账户返回 `skipped`，`skipped_reason=secret_writeback_unavailable`。
 - SeekAI 账号通过 GitHub 注册，签到使用 `SEEKAI_TOKEN`，不参与 `CHECKIN_USERNAME` / `CHECKIN_PASSWORD` 回退；仍需 `SEEKAI_TURNSTILE_TOKEN` 才能完成未签到当天的签到。
+- `SEEKAI_TOKEN` 在当前真实代码里是静态访问令牌，没有可调用的 refresh 接口，因此不能自动滚动；失效时需手动更新 Secret。
+- `KK_TOKEN` 可长期使用，但它不是 Turnstile token；未签到当天仍需要 `KK_TURNSTILE_TOKEN`。
 
 ### Turnstile 人工 token
 

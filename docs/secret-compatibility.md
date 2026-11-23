@@ -53,6 +53,11 @@ the site is `skipped` with `secret_missing`.
 SeekAI and BENST are token-only and never fall back to username/password.
 SeekAI's account is created through GitHub registration; check-in still uses
 `SEEKAI_TOKEN` and still requires `SEEKAI_TURNSTILE_TOKEN` on an unchecked day.
+The current real code path has no SeekAI refresh endpoint, so `SEEKAI_TOKEN` is
+a static access token and must be updated manually when invalid.
+
+`KK_TOKEN` is a long-lived access token, but it does not replace
+`KK_TURNSTILE_TOKEN`; an unchecked KK run still needs the Turnstile token.
 
 ## Manual copy list for the host repo
 
