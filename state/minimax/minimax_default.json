@@ -8,10 +8,10 @@
   "last_points_gained": null,
   "last_points_source": "api_unavailable",
   "last_points_unit": "points",
-  "last_run_id": "20261123T190307-514504",
-  "last_success_at": "2026-11-23T11:03:26+00:00",
+  "last_run_id": "20261124T002209-20803b",
+  "last_success_at": "2026-11-23T16:22:33+00:00",
   "platform": "minimax",
   "schema_version": 1,
   "secret_version": null,
-  "updated_at": "2026-11-23T11:03:26+00:00"
+  "updated_at": "2026-11-23T16:22:33+00:00"
 }
