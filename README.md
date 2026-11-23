@@ -17,13 +17,13 @@
 | 受 Secret 阻塞（blocked_no_secret） | 0 |
 | 测试 | 99 通过 |
 | 运行时 | Python 3.12 |
-| 旧 kk 仓库 | 仍在运行，未归档 |
+| 旧 kk 仓库 | 定时任务已停用，仓库保留待归档 |
 
 - 13 个账户目标全部完成真实响应探测。
 - KK 的 Playwright 浏览器 fallback 已在 GitHub Actions 中真实通过 Turnstile：`solved`，2 次点击，无需人工 token。
 - SeekAI 在更新 `SEEKAI_TOKEN` 后，同一浏览器 fallback 也真实通过：`solved`，2 次点击，无需人工 Turnstile token。
 - `SEEKAI_TURNSTILE_TOKEN` / `KK_TURNSTILE_TOKEN` 只是可选应急覆盖，不是默认必需。
-- 旧 kk 仓库仍作为临时兜底；主 workflow 完成一个完整周期后停用。
+- 旧 kk 仓库的定时任务已停用；仓库保留用于回滚，主 workflow 跑完一个自然周期后归档。
 
 完整逐行状态与真实脱敏事件：
 
@@ -221,18 +221,20 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 ## 调度
 
-当前线上仍使用原有 `.github/workflows/checkin.yml`（5 个旧 job），新 core 通过 `probe-platform` 手动验证。主入口/主调度收敛是下一步工作；在完成前：
+`.github/workflows/checkin.yml` 现在是唯一主 workflow，单 job 调用 `python -m src.main`。
 
-- 旧 kk 仓库定时任务不停。
-- 旧 auto 仓库 workflow 继续作为在线兜底。
-- 新宿主完成 13/13 验证后再替换。
+| UTC | 北京时间 | profile | 范围 |
+|---|---|---|---|
+| 18:02 / 18:12 | 02:02 / 02:12 | `quota` | BENST |
+| 22:20 | 06:20 | `morning` | 全量 |
+| 01:10 | 09:10 | `midmorning` | 全量 |
+| 02:15 | 10:15 | `qoder` | Qoder CN/Global |
+| 05:30 | 13:30 | `afternoon` | 全量 |
 
-新注册表已定义 profile：
-
-- `quota`：BENST 02:00/02:10 配额窗口
-- `qoder`：Qoder CN/Global
-- `morning` / `midmorning` / `afternoon`：全量
-- `manual`：手动探针
+- `concurrency.group: daily-checkin`，不并发。
+- 每次运行提交 `history/run.log`、`history/events.jsonl`、`state/`。
+- 旧 kk 仓库 workflow 已手动停用，仓库保留待归档。
+- `probe-platform` 仍可手动探测任意平台。
 
 ## 迁移状态
 
@@ -243,13 +245,14 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 - 99 个测试
 - 13 个账户目标真实响应验证
 - `src/main.py` 单主入口
+- 主 workflow 已切换为单 job，完整跑通 13 个账户目标
 - 旧 kk 历史日志归档与 SHA-256 `META.json`
 - 旧 workflow 日志截断逻辑移除，改为纯追加
+- 旧 kk 定时任务已停用
 
 待完成：
 
-- 主 workflow 收敛到单 job
-- 主 workflow 跑完一个完整周期后停用旧 kk 仓库
+- 主 workflow 跑完一个自然周期后归档旧 kk 仓库
 
 ## 开发
 
