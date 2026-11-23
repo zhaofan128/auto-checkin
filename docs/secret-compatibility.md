@@ -51,6 +51,8 @@ Resolution: per-site override first, then global default. If neither exists,
 the site is `skipped` with `secret_missing`.
 
 SeekAI and BENST are token-only and never fall back to username/password.
+SeekAI's account is created through GitHub registration; check-in still uses
+`SEEKAI_TOKEN` and still requires `SEEKAI_TURNSTILE_TOKEN` on an unchecked day.
 
 ## Manual copy list for the host repo
 
