@@ -1,0 +1,56 @@
+2026-10-31 01:36 UTC  daily-checkin 运行一次
+2026-11-01 01:10 UTC  daily-checkin 运行一次
+2026-11-02 01:30 UTC  daily-checkin 运行一次
+2026-11-03 03:28 UTC  daily-checkin 运行一次
+2026-11-04 02:20 UTC  daily-checkin 运行一次
+2026-11-05 02:35 UTC  daily-checkin 运行一次
+2026-11-06 02:35 UTC  daily-checkin 运行一次
+2026-11-07 02:02 UTC  daily-checkin 运行一次
+2026-11-08 01:32 UTC  daily-checkin 运行一次
+2026-11-09 01:46 UTC  daily-checkin 运行一次
+2026-11-10 04:12 UTC  daily-checkin 运行一次
+2026-11-11 01:59 UTC  daily-checkin 运行一次
+2026-11-12 03:09 UTC  daily-checkin 运行一次
+2026-11-13 02:42 UTC  daily-checkin 运行一次
+2026-11-14 02:30 UTC  daily-checkin 运行一次
+2026-11-15 01:59 UTC  daily-checkin 运行一次
+2026-11-16 02:15 UTC  daily-checkin 运行一次
+2026-11-17 04:37 UTC  daily-checkin 运行一次
+2026-11-18 03:45 UTC  daily-checkin 运行一次
+2026-11-19 03:41 UTC  daily-checkin 运行一次
+2026-11-20 03:32 UTC  daily-checkin 运行一次
+2026-11-21 03:17 UTC  daily-checkin 运行一次
+2026-11-22 02:22 UTC  daily-checkin 运行一次
+2026-11-23 02:54 UTC  daily-checkin 运行一次
+2026-11-23T19:03:14+08:00 | run=20261123T190307-514504 | workbuddy/WorkBuddy | acct=wo***dy | status=already_checked | gained=null | current=3600 | unit=credits | source=api_unavailable | duration=6614ms | message=今日已签到; travel=daily_limit_reached；签到响应未返回本次积分
+2026-11-23T19:03:18+08:00 | run=20261123T190307-514504 | traework/TraeWork CN | acct=tr***rk | status=already_checked | gained=null | current=100 | unit=credits | source=api_unavailable | duration=4272ms | message=今日已签到；签到响应未返回本次积分
+2026-11-23T19:03:23+08:00 | run=20261123T190307-514504 | qoder_cn/Qoder CN | acct=qo***cn | status=skipped | gained=null | current=null | unit=credits | source=api_unavailable | duration=4763ms | skipped_reason=no_activity | message=无签到活动
+2026-11-23T19:03:24+08:00 | run=20261123T190307-514504 | qoder_global/Qoder Global | acct=qo***al | status=skipped | gained=null | current=null | unit=credits | source=api_unavailable | duration=1077ms | skipped_reason=no_activity | message=无签到活动
+2026-11-23T19:03:26+08:00 | run=20261123T190307-514504 | minimax/MiniMax Code | acct=mi***ax | status=already_checked | gained=null | current=null | unit=points | source=api_unavailable | duration=1916ms | message=今日已签到；平台未返回总积分
+2026-11-23T19:03:29+08:00 | run=20261123T190307-514504 | lobsterai/LobsterAI | acct=lo***ai | status=already_checked | gained=null | current=null | unit=credits | source=idempotent_reset | duration=3717ms | message=LobsterAI 今日已处理；平台返回额度重置，非签到获得积分
+2026-11-23T19:03:30+08:00 | run=20261123T190307-514504 | kk/KK | acct=*** | status=already_checked | gained=null | current=997759 | unit=quota | source=api_unavailable | duration=986ms | message=今日已签到；签到响应未返回本次积分
+2026-11-23T19:03:34+08:00 | run=20261123T190307-514504 | dgb/DGB 公益站 | acct=d***b | status=already_checked | gained=null | current=112238913 | unit=quota | source=api_unavailable | duration=3166ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:34+08:00 | run=20261123T190307-514504 | aiaiai/AIAIAI 工具箱 | acct=ai***ai | status=already_checked | gained=null | current=38636 | unit=quota | source=api_unavailable | duration=815ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:35+08:00 | run=20261123T190307-514504 | helpcoder/帮帮程序员 | acct=he***er | status=already_checked | gained=null | current=160000000 | unit=quota | source=api_unavailable | duration=682ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:36+08:00 | run=20261123T190307-514504 | kemeng/可萌中转站 | acct=ke***ng | status=already_checked | gained=null | current=1008044 | unit=quota | source=api_unavailable | duration=1074ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:37+08:00 | run=20261123T190307-514504 | seekai/SeekAI | acct=se***ai | status=already_checked | gained=null | current=18999999 | unit=quota | source=api_unavailable | duration=549ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:38+08:00 | run=20261123T190307-514504 | benst/神秘小站 BENST | acct=be***st | status=already_checked | gained=null | current=773199 | unit=quota | source=api_unavailable | duration=1736ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-23T19:03:38+08:00 | run=20261123T190307-514504 | summary total=13 success=0 already_checked=11 skipped=2 failed=0 unknown=0 duration=31485ms | skipped_reasons=no_activity:2 | skipped_reason=no_activity
+2026-11-24T00:22:21+08:00 | run=20261124T002209-20803b | workbuddy/WorkBuddy | acct=wo***dy | status=already_checked | gained=null | current=3700 | unit=credits | source=api_unavailable | duration=11746ms | message=今日已签到; travel=departed:咖啡馆；签到响应未返回本次积分
+2026-11-24T00:22:25+08:00 | run=20261124T002209-20803b | traework/TraeWork CN | acct=tr***rk | status=success | gained=null | current=100 | unit=credits | source=api_unavailable | duration=4525ms | message=签到成功；签到响应未返回本次积分
+2026-11-24T00:22:30+08:00 | run=20261124T002209-20803b | qoder_cn/Qoder CN | acct=qo***cn | status=skipped | gained=null | current=1433.0 | unit=credits | source=api_unavailable | duration=5055ms | skipped_reason=no_activity | message=无签到活动; campaigns=1; actions=['VIEW_DETAILS']; statuses=['CLAIMED']; token=<REDACTED>,refresh_token; machine=no; usage=ok; keys=['actionType', 'campaignId', 'campaignKey', 'claimStatus', 'endAt', 'placements', 'startAt']; campaign_key=act-20261020-008; placements=[{'type': 'POPUP', 'campaignUrl': 'https://openapi.qoder.com.cn/growth-page/acti; benefit_keys=[]; amount=None
+2026-11-24T00:22:31+08:00 | run=20261124T002209-20803b | qoder_global/Qoder Global | acct=qo***al | status=skipped | gained=null | current=771.0 | unit=credits | source=api_unavailable | duration=666ms | skipped_reason=no_activity | message=无签到活动; campaigns=1; actions=['VIEW_DETAILS']; statuses=['CLAIMABLE']; token=<REDACTED>; machine=no; usage=ok; keys=['actionType', 'campaignId', 'campaignKey', 'claimStatus', 'endAt', 'placements', 'startAt']; campaign_key=act-20261020-944; placements=[{'type': 'POPUP', 'campaignUrl': 'https://openapi.qoder.sh/growth-page/activity; benefit_keys=[]; amount=None
+2026-11-24T00:22:33+08:00 | run=20261124T002209-20803b | minimax/MiniMax Code | acct=mi***ax | status=already_checked | gained=null | current=null | unit=points | source=api_unavailable | duration=1659ms | message=今日已签到；平台未返回总积分
+2026-11-24T00:22:34+08:00 | run=20261124T002209-20803b | lobsterai/LobsterAI | acct=lo***ai | status=failed | gained=null | current=null | unit=null | source=api_unavailable | duration=1749ms | error_type=restricted | message=LobsterAI 账号受限: 账号暂时无法使用相关服务，预计于 2026-11-24 21:36:22 (UTC+08:00) 恢复。请通过有道龙虾官方客户端或官网使用服务，勿通过第三方反向代理或插件转接、共享本账号的服务额度。再次出现异常使用可能导致永久停用。；LobsterAI 积分在签到响应中解析
+2026-11-24T00:23:02+08:00 | run=20261124T002209-20803b | kk/KK | acct=*** | status=success | gained=456401 | current=1454160 | unit=quota | source=api_field | duration=27431ms | turnstile=browser_fallback/solved | message=签到成功
+2026-11-24T00:23:06+08:00 | run=20261124T002209-20803b | dgb/DGB 公益站 | acct=d***b | status=success | gained=20697323 | current=132936236 | unit=quota | source=api_field | duration=4451ms | message=Check-in successful
+2026-11-24T00:23:08+08:00 | run=20261124T002209-20803b | aiaiai/AIAIAI 工具箱 | acct=ai***ai | status=success | gained=29932 | current=68568 | unit=quota | source=api_field | duration=1292ms | message=签到成功
+2026-11-24T00:23:08+08:00 | run=20261124T002209-20803b | helpcoder/帮帮程序员 | acct=he***er | status=success | gained=30000000 | current=190000000 | unit=quota | source=api_field | duration=697ms | message=签到成功
+2026-11-24T00:23:09+08:00 | run=20261124T002209-20803b | kemeng/可萌中转站 | acct=ke***ng | status=success | gained=39134 | current=1047178 | unit=quota | source=api_field | duration=994ms | message=Check-in successful
+2026-11-24T00:23:31+08:00 | run=20261124T002209-20803b | seekai/SeekAI | acct=se***ai | status=success | gained=10000000 | current=28999999 | unit=quota | source=api_field | duration=22017ms | turnstile=browser_fallback/solved | message=签到成功
+2026-11-24T00:23:33+08:00 | run=20261124T002209-20803b | benst/神秘小站 BENST | acct=be***st | status=success | gained=106586 | current=879785 | unit=quota | source=api_field | duration=1840ms | message=Check-in successful
+2026-11-24T00:23:33+08:00 | run=20261124T002209-20803b | summary total=13 success=8 already_checked=2 skipped=2 failed=1 unknown=0 duration=84151ms | skipped_reasons=no_activity:2 | skipped_reason=no_activity
+2026-11-24T11:54:57+08:00 | run=20261124T115456-d8207a | benst/神秘小站 BENST | acct=be***st | status=already_checked | gained=null | current=879785 | unit=quota | source=api_unavailable | duration=1275ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-24T11:54:57+08:00 | run=20261124T115456-d8207a | summary total=1 success=0 already_checked=1 skipped=0 failed=0 unknown=0 duration=1285ms
+2026-11-24T12:02:38+08:00 | run=20261124T120238-619b8e | benst/神秘小站 BENST | acct=be***st | status=already_checked | gained=null | current=879785 | unit=quota | source=api_unavailable | duration=775ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-24T12:02:38+08:00 | run=20261124T120238-619b8e | summary total=1 success=0 already_checked=1 skipped=0 failed=0 unknown=0 duration=778ms

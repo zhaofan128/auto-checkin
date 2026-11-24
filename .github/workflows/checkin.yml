@@ -130,6 +130,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add history/run.log history/events.jsonl state
-          git diff --cached --quiet || git commit -m "chore: checkin ${PROFILE} $(date -u +'%Y-%m-%dT%H:%MZ')"
+          SUMMARY="$(cat history/last-summary.txt 2>/dev/null || true)"
+          git add history/run.log history/events.jsonl history/last-summary.txt state
+          git diff --cached --quiet || git commit -m "checkin $(date -u +'%Y-%m-%dT%H:%MZ') ${SUMMARY}"
           git push

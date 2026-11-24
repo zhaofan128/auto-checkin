@@ -88,5 +88,5 @@ def test_pat_unavailable_skip_is_visible_in_human_log(tmp_path: Path):
     assert '"skipped_reason":"secret_writeback_unavailable"' in event_line
 
     human = (tmp_path / "history" / "run.log").read_text(encoding="utf-8")
-    assert "skipped_reason=secret_writeback_unavailable" in human
-    assert "GH_PAT 不可写" in human
+    assert len(human.splitlines()) == 1
+    assert "workbuddy:跳过" in human

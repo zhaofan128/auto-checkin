@@ -220,11 +220,12 @@ CHECKIN_USERNAME_KEMENG / CHECKIN_PASSWORD_KEMENG
 
 ## 日志与状态
 
-- `history/events.jsonl`：结构化事件，唯一事实来源，纯追加。
-- `history/run.log`：人类可读摘要，纯追加。
+- `history/events.jsonl`：结构化事件，唯一事实来源，纯追加，保留完整排查信息。
+- `history/run.log`：每次运行只写一行，只包含 `平台:状态`，不再写账号、积分、耗时和消息。
+- `history/last-summary.txt`：最近一次运行的计数，用于生成一条简短 commit message。
 - `history/archive/kk-auto-checkin/run.log`：旧 kk 历史日志归档。
-- 新 core 写入不截断；旧 workflow 的 `tail -n 120 + mv` 已移除，改为纯追加。
-- 旧 kk 历史日志已归档到 `history/archive/kk-auto-checkin/`，含 SHA-256 `META.json`。
+- `history/archive/host-run-detailed-20261123.log`：旧宿主详细 run.log 归档，未删除。
+- 每次签到只产生一个提交，commit message 形如 `checkin 2026-11-24T06:20Z success=4 already_checked=7 failed=0 skipped=2`。
 - 状态按账户独立保存，写入使用临时文件 + `os.replace`，并加账户级文件锁。
 - Qoder CN/Global 使用两个独立状态文件、两把锁、两个 `platform` 日志值。
 - 日志不记录 Token/Cookie/密码；账号只保留脱敏值。

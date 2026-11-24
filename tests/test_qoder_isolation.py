@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.core.logging import EventLogger
-from src.core.models import AccountRef, CheckinResult, PointsResult
+from src.core.models import AccountRef, AccountResult, CheckinResult, PointsResult, RunReport
 from src.core.state import AccountStateStore, default_state
 
 
@@ -49,13 +49,26 @@ def test_qoder_cn_and_global_do_not_share_state_or_logs(tmp_path: Path):
         ),
         run_profile="manual",
     )
+    report = RunReport(run_id="run-qoder", profile="manual")
+    report.results.extend(
+        [
+            AccountResult(
+                account=cn,
+                result=CheckinResult(status="success", message="CN ok"),
+            ),
+            AccountResult(
+                account=global_account,
+                result=CheckinResult(status="failed", message="Global failed"),
+            ),
+        ]
+    )
+    logger.summary(report)
 
     events = logger.read_events()
     platforms = {event["platform"] for event in events}
     assert platforms == {"qoder_cn", "qoder_global"}
     assert all("qoder" in event["account_key"] for event in events)
     text = (tmp_path / "history" / "run.log").read_text(encoding="utf-8")
-    assert "qoder_cn/Qoder CN" in text
-    assert "qoder_global/Qoder GLOBAL" in text
-    assert "CN ok" in text
-    assert "Global failed" in text
+    assert len(text.splitlines()) == 1
+    assert "qoder_cn:成功" in text
+    assert "qoder_global:失败" in text

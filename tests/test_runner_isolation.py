@@ -92,8 +92,9 @@ def test_one_account_failure_does_not_stop_others(tmp_path: Path):
     events = logger.read_events()
     assert {event["platform"] for event in events} == {"fake_good", "fake_bad"}
     text = (tmp_path / "history" / "run.log").read_text(encoding="utf-8")
-    assert "summary" in text
-    assert "failed=1" in text
+    assert len(text.splitlines()) == 1
+    assert "fake_good:成功" in text
+    assert "fake_bad:失败" in text
 
     state = AccountStateStore(tmp_path / "state")
     good = state.load(

@@ -44,6 +44,6 @@ def test_all_13_accounts_degrade_without_secrets(tmp_path: Path):
         assert event["message"].startswith("Secret 缺失，未真实探测")
 
     text = (tmp_path / "history" / "run.log").read_text(encoding="utf-8")
-    assert "skipped_reason=secret_missing" in text
-    assert "total=13" in text
+    assert len(text.splitlines()) == 1
+    assert text.count(":跳过") == 13
     assert len(list((tmp_path / "state").rglob("*.json"))) == 13

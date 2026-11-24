@@ -28,7 +28,14 @@ def test_events_jsonl_is_append_only(tmp_path: Path):
 
     lines = (tmp_path / "events.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 2
-    assert (tmp_path / "run.log").read_text(encoding="utf-8").count("\n") == 2
+    assert not (tmp_path / "run.log").exists()
+
+    report = RunReport(run_id="run-1", profile="manual")
+    report.results.append(AccountResult(account=account, result=result))
+    logger.summary(report)
+    run_lines = (tmp_path / "run.log").read_text(encoding="utf-8").splitlines()
+    assert len(run_lines) == 1
+    assert "qoder_cn:成功" in run_lines[0]
 
 
 def test_existing_run_log_is_preserved(tmp_path: Path):
@@ -37,27 +44,28 @@ def test_existing_run_log_is_preserved(tmp_path: Path):
 
     logger = EventLogger(tmp_path, run_id="run-2")
     account = make_account("workbuddy", "default", "workbuddy:default")
-    logger.account_result(
-        account,
-        CheckinResult(status="already_checked", message="今日已签到", duration_ms=5),
-        run_profile="morning",
-    )
+    result = CheckinResult(status="already_checked", message="今日已签到", duration_ms=5)
+    logger.account_result(account, result, run_profile="morning")
+    report = RunReport(run_id="run-2", profile="morning")
+    report.results.append(AccountResult(account=account, result=result))
+    logger.summary(report)
 
     content = host_log.read_text(encoding="utf-8")
     assert content.startswith("2026-10-31 01:36 UTC  daily-checkin 运行一次\n")
     assert len(content.splitlines()) == 2
+    assert "workbuddy:已签到" in content.splitlines()[1]
 
 
-def test_run_log_is_not_truncated_over_many_events(tmp_path: Path):
+def test_run_log_has_one_line_per_run_not_per_event(tmp_path: Path):
     logger = EventLogger(tmp_path, run_id="run-3")
     account = make_account("kk", "default", "kk:default")
+    report = RunReport(run_id="run-3", profile="manual")
     for index in range(200):
-        logger.account_result(
-            account,
-            CheckinResult(status="success", message=f"ok {index}", duration_ms=index),
-            run_profile="manual",
-        )
-    assert len((tmp_path / "run.log").read_text(encoding="utf-8").splitlines()) == 200
+        result = CheckinResult(status="success", message=f"ok {index}", duration_ms=index)
+        logger.account_result(account, result, run_profile="manual")
+        report.results.append(AccountResult(account=account, result=result))
+    logger.summary(report)
+    assert len((tmp_path / "run.log").read_text(encoding="utf-8").splitlines()) == 1
 
 
 def test_summary_emits_skipped_reason_for_human_readability(tmp_path: Path):
@@ -77,7 +85,8 @@ def test_summary_emits_skipped_reason_for_human_readability(tmp_path: Path):
     )
     logger.summary(report)
     text = (tmp_path / "run.log").read_text(encoding="utf-8")
-    assert "skipped_reason=secret_writeback_unavailable" in text
+    assert "traework:跳过" in text
+    assert len(text.splitlines()) == 1
 
 
 def test_logging_failure_does_not_raise(tmp_path: Path):
@@ -119,9 +128,17 @@ def test_duplicate_checkin_is_logged_with_current_points(tmp_path: Path):
     assert events[0]["checkin_status"] == "already_checked"
     assert events[0]["points_current"] == 500
     assert events[0]["points_source"] == "api_unavailable"
+    report = RunReport(run_id="run-duplicate", profile="manual")
+    report.results.append(
+        AccountResult(
+            account=account,
+            result=CheckinResult(status="already_checked", message="今日已签到"),
+        )
+    )
+    logger.summary(report)
     text = (tmp_path / "run.log").read_text(encoding="utf-8")
-    assert "status=already_checked" in text
-    assert "current=500" in text
+    assert "dgb:已签到" in text
+    assert "current=500" not in text
 
 
 def test_manual_turnstile_mode_is_logged_without_token(tmp_path: Path):
@@ -142,8 +159,16 @@ def test_manual_turnstile_mode_is_logged_without_token(tmp_path: Path):
         ),
         run_profile="manual",
     )
+    report = RunReport(run_id="run-turnstile", profile="manual")
+    report.results.append(
+        AccountResult(
+            account=account,
+            result=CheckinResult(status="success", message="签到成功"),
+        )
+    )
+    logger.summary(report)
     text = (tmp_path / "run.log").read_text(encoding="utf-8")
-    assert "turnstile=manual_token/manual_token" in text
+    assert "kk:成功" in text
     assert "secret-turnstile-token" not in text
     assert "secret-turnstile-token" not in (tmp_path / "events.jsonl").read_text(encoding="utf-8")
 
@@ -168,8 +193,16 @@ def test_browser_fallback_mode_is_logged_without_token(tmp_path: Path):
         ),
         run_profile="manual",
     )
+    report = RunReport(run_id="run-turnstile-fallback", profile="manual")
+    report.results.append(
+        AccountResult(
+            account=account,
+            result=CheckinResult(status="failed", message="Turnstile 验证超时"),
+        )
+    )
+    logger.summary(report)
     text = (tmp_path / "run.log").read_text(encoding="utf-8")
-    assert "turnstile=browser_fallback/timeout" in text
+    assert "kk:失败" in text
     assert "secret-browser-token" not in text
     assert "secret-browser-token" not in (tmp_path / "events.jsonl").read_text(encoding="utf-8")
 
@@ -187,7 +220,16 @@ def test_sensitive_values_are_redacted_in_logs(tmp_path: Path):
         ),
         run_profile="manual",
     )
+    report = RunReport(run_id="run-6", profile="manual")
+    report.results.append(
+        AccountResult(
+            account=account,
+            result=CheckinResult(status="failed", message="login failed"),
+        )
+    )
+    logger.summary(report)
     text = (tmp_path / "run.log").read_text(encoding="utf-8")
+    assert "newapi_dgb:失败" in text
     assert "supersecret" not in text
     assert "nap_abcdefghijklmnopqrstuvwxyz" not in text
     assert "eyJhbGciOiJIUzI1NiJ9" not in text

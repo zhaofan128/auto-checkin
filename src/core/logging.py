@@ -30,10 +30,6 @@ def new_run_id(clock: Callable[[], datetime] | None = None) -> str:
     return f"{stamp}-{uuid.uuid4().hex[:6]}"
 
 
-def _fmt(value: Any) -> str:
-    return "null" if value is None else str(value)
-
-
 def sanitize_event(payload: dict[str, Any]) -> dict[str, Any]:
     result = dict(payload)
     result["account"] = mask_account(str(result.get("account") or ""))
@@ -66,7 +62,6 @@ class EventLogger:
         line = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         with self._lock:
             self._safe_append(self.events_path, line)
-            self._safe_append(self.run_log_path, self._format_event(payload))
 
     def account_result(
         self,
@@ -112,24 +107,31 @@ class EventLogger:
         self.emit(event)
 
     def summary(self, report: RunReport) -> None:
+        labels = {
+            "success": "成功",
+            "already_checked": "已签到",
+            "failed": "失败",
+            "skipped": "跳过",
+            "unknown": "未知",
+        }
+        parts = [
+            f"{item.account.platform}:{labels.get(item.result.status, item.result.status)}"
+            for item in report.results
+        ]
+        line = f"{self._clock().isoformat(timespec='seconds')} | " + " ".join(parts)
         counts = report.counts
-        line = (
-            f"{self._clock().isoformat(timespec='seconds')} | run={report.run_id} | summary"
-            f" total={len(report.results)}"
-            f" success={counts['success']}"
-            f" already_checked={counts['already_checked']}"
-            f" skipped={counts['skipped']}"
-            f" failed={counts['failed']}"
-            f" unknown={counts['unknown']}"
-            f" duration={report.duration_ms}ms"
+        counts_line = " ".join(
+            f"{key}={counts[key]}"
+            for key in ("success", "already_checked", "failed", "skipped", "unknown")
         )
-        reasons = report.skipped_reasons
-        if reasons:
-            detail = ",".join(f"{key}:{value}" for key, value in sorted(reasons.items()))
-            line += f" | skipped_reasons={detail}"
-            line += " | skipped_reason=" + ",".join(sorted(reasons))
         with self._lock:
             self._safe_append(self.run_log_path, line)
+            try:
+                (self.history_dir / "last-summary.txt").write_text(
+                    counts_line + "\n", encoding="utf-8"
+                )
+            except Exception as exc:  # noqa: BLE001 - logging must never block check-in
+                self.last_errors.append(f"last-summary.txt: {exc}")
 
     def read_events(self) -> list[dict[str, Any]]:
         if not self.events_path.exists():
@@ -139,29 +141,6 @@ class EventLogger:
             if line.strip():
                 events.append(json.loads(line))
         return events
-
-    def _format_event(self, payload: dict[str, Any]) -> str:
-        parts = [
-            str(payload["timestamp"]),
-            f"run={payload['run_id']}",
-            f"{payload['platform']}/{payload['platform_name']}",
-            f"acct={payload['account']}",
-            f"status={payload['checkin_status']}",
-            f"gained={_fmt(payload['points_gained'])}",
-            f"current={_fmt(payload['points_current'])}",
-            f"unit={_fmt(payload['points_unit'])}",
-            f"source={payload['points_source']}",
-            f"duration={payload['duration_ms']}ms",
-        ]
-        if payload.get("skipped_reason"):
-            parts.append(f"skipped_reason={payload['skipped_reason']}")
-        if payload.get("turnstile"):
-            turnstile = payload["turnstile"]
-            parts.append(f"turnstile={turnstile.get('mode')}/{turnstile.get('result')}")
-        if payload.get("error_type"):
-            parts.append(f"error_type={payload['error_type']}")
-        parts.append(f"message={payload['message']}")
-        return " | ".join(parts)
 
     def _safe_append(self, path: Path, text: str) -> None:
         try:
