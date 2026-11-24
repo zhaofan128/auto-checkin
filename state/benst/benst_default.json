@@ -2,16 +2,16 @@
   "account_key": "benst:default",
   "account_label": "benst",
   "generation": 0,
-  "last_checkin_status": "success",
+  "last_checkin_status": "already_checked",
   "last_error_type": null,
   "last_points_current": 879785,
-  "last_points_gained": 106586,
-  "last_points_source": "api_field",
+  "last_points_gained": null,
+  "last_points_source": "api_unavailable",
   "last_points_unit": "quota",
-  "last_run_id": "20261124T002209-20803b",
-  "last_success_at": "2026-11-23T16:23:33+00:00",
+  "last_run_id": "20261124T115456-d8207a",
+  "last_success_at": "2026-11-24T03:54:57+00:00",
   "platform": "benst",
   "schema_version": 1,
   "secret_version": null,
-  "updated_at": "2026-11-23T16:23:33+00:00"
+  "updated_at": "2026-11-24T03:54:57+00:00"
 }

@@ -50,3 +50,5 @@
 2026-11-24T00:23:31+08:00 | run=20261124T002209-20803b | seekai/SeekAI | acct=se***ai | status=success | gained=10000000 | current=28999999 | unit=quota | source=api_field | duration=22017ms | turnstile=browser_fallback/solved | message=签到成功
 2026-11-24T00:23:33+08:00 | run=20261124T002209-20803b | benst/神秘小站 BENST | acct=be***st | status=success | gained=106586 | current=879785 | unit=quota | source=api_field | duration=1840ms | message=Check-in successful
 2026-11-24T00:23:33+08:00 | run=20261124T002209-20803b | summary total=13 success=8 already_checked=2 skipped=2 failed=1 unknown=0 duration=84151ms | skipped_reasons=no_activity:2 | skipped_reason=no_activity
+2026-11-24T11:54:57+08:00 | run=20261124T115456-d8207a | benst/神秘小站 BENST | acct=be***st | status=already_checked | gained=null | current=879785 | unit=quota | source=api_unavailable | duration=1275ms | message=今日已签到；签到响应未返回 quota_awarded
+2026-11-24T11:54:57+08:00 | run=20261124T115456-d8207a | summary total=1 success=0 already_checked=1 skipped=0 failed=0 unknown=0 duration=1285ms
