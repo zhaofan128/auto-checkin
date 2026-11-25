@@ -4,14 +4,14 @@
   "generation": 0,
   "last_checkin_status": "already_checked",
   "last_error_type": null,
-  "last_points_current": 1083855,
+  "last_points_current": 1118174,
   "last_points_gained": null,
   "last_points_source": "api_unavailable",
   "last_points_unit": "quota",
-  "last_run_id": "20261125T235622-3b3c84",
-  "last_success_at": "2026-11-25T15:56:53+00:00",
+  "last_run_id": "20261126T070227-f13b2c",
+  "last_success_at": "2026-11-25T23:03:00+00:00",
   "platform": "kemeng",
   "schema_version": 1,
   "secret_version": null,
-  "updated_at": "2026-11-25T15:56:53+00:00"
+  "updated_at": "2026-11-25T23:03:00+00:00"
 }
