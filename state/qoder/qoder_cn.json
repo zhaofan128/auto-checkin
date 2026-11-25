@@ -1,17 +1,17 @@
 {
   "account_key": "qoder:cn",
   "account_label": "qoder-cn",
-  "generation": 10,
-  "last_checkin_status": "failed",
-  "last_error_type": "secret_writeback_failed",
-  "last_points_current": null,
+  "generation": 11,
+  "last_checkin_status": "skipped",
+  "last_error_type": null,
+  "last_points_current": 1433.0,
   "last_points_gained": null,
-  "last_points_source": null,
-  "last_points_unit": null,
-  "last_run_id": "20261125T235622-3b3c84",
+  "last_points_source": "api_unavailable",
+  "last_points_unit": "credits",
+  "last_run_id": "20261126T070042-71d23d",
   "last_success_at": null,
   "platform": "qoder_cn",
   "schema_version": 1,
-  "secret_version": "2026-11-25T11:17:55Z",
-  "updated_at": "2026-11-25T15:56:39+00:00"
+  "secret_version": "2026-11-25T23:00:58Z",
+  "updated_at": "2026-11-25T23:01:00+00:00"
 }
