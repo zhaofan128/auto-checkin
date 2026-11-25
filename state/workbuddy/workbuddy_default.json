@@ -1,17 +1,17 @@
 {
   "account_key": "workbuddy:default",
   "account_label": "workbuddy",
-  "generation": 7,
+  "generation": 8,
   "last_checkin_status": "already_checked",
   "last_error_type": null,
   "last_points_current": 3800,
   "last_points_gained": null,
   "last_points_source": "api_unavailable",
   "last_points_unit": "credits",
-  "last_run_id": "20261125T125711-69e4f9",
-  "last_success_at": "2026-11-25T04:57:19+00:00",
+  "last_run_id": "20261125T175029-6b0eb3",
+  "last_success_at": "2026-11-25T09:50:36+00:00",
   "platform": "workbuddy",
   "schema_version": 1,
-  "secret_version": "2026-11-25T04:57:16Z",
-  "updated_at": "2026-11-25T04:57:19+00:00"
+  "secret_version": "2026-11-25T09:50:33Z",
+  "updated_at": "2026-11-25T09:50:36+00:00"
 }
