@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
@@ -91,6 +92,23 @@ class AccountResult:
     result: CheckinResult
 
 
+_TRANSIENT_PATTERN = re.compile(
+    r"HTTP\s*5\d{2}|error code:\s*5\d{2}|网络请求失败|timed?\s*out|timeout",
+    re.IGNORECASE,
+)
+
+
+def is_transient_failure(result: CheckinResult) -> bool:
+    """上游 5xx / 网络超时属于临时故障，不应让整次任务失败（后续定时任务会自动重试）。"""
+
+    if result.status != "failed":
+        return False
+    if result.error_type == "transient_error":
+        return True
+    text = f"{result.message or ''} {result.error_detail or ''}"
+    return bool(_TRANSIENT_PATTERN.search(text))
+
+
 @dataclass
 class RunReport:
     run_id: str
@@ -104,6 +122,10 @@ class RunReport:
         for item in self.results:
             counts[item.result.status] = counts.get(item.result.status, 0) + 1
         return counts
+
+    @property
+    def transient_failed(self) -> int:
+        return sum(1 for item in self.results if is_transient_failure(item.result))
 
     @property
     def skipped_reasons(self) -> dict[str, int]:
@@ -120,4 +142,5 @@ class RunReport:
 
     @property
     def exit_code(self) -> int:
-        return 1 if self.failed else 0
+        blocking = self.counts.get("failed", 0) - self.transient_failed
+        return 1 if blocking > 0 else 0
