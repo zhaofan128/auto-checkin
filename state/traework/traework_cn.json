@@ -1,17 +1,17 @@
 {
   "account_key": "traework:cn",
   "account_label": "traework",
-  "generation": 12,
+  "generation": 13,
   "last_checkin_status": "already_checked",
   "last_error_type": null,
   "last_points_current": 100,
   "last_points_gained": null,
   "last_points_source": "api_unavailable",
   "last_points_unit": "credits",
-  "last_run_id": "20261126T122325-e4911a",
-  "last_success_at": "2026-11-26T04:23:37+00:00",
+  "last_run_id": "20261126T172933-96df6d",
+  "last_success_at": "2026-11-26T09:29:44+00:00",
   "platform": "traework",
   "schema_version": 1,
-  "secret_version": "2026-11-26T04:23:37Z",
-  "updated_at": "2026-11-26T04:23:37+00:00"
+  "secret_version": "2026-11-26T09:29:43Z",
+  "updated_at": "2026-11-26T09:29:44+00:00"
 }
