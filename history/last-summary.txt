@@ -1,1 +1,1 @@
-success=0 already_checked=1 failed=0 skipped=0 unknown=0
+success=6 already_checked=3 failed=2 skipped=2 unknown=0

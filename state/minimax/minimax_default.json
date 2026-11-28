@@ -1,17 +1,17 @@
 {
   "account_key": "minimax:default",
   "account_label": "minimax",
-  "generation": 5,
+  "generation": 6,
   "last_checkin_status": "already_checked",
   "last_error_type": null,
   "last_points_current": null,
   "last_points_gained": null,
   "last_points_source": "api_unavailable",
   "last_points_unit": "points",
-  "last_run_id": "20261127T232851-efe87c",
-  "last_success_at": "2026-11-27T15:29:10+00:00",
+  "last_run_id": "20261128T120030-f41cca",
+  "last_success_at": "2026-11-28T04:00:57+00:00",
   "platform": "minimax",
   "schema_version": 1,
-  "secret_version": "2026-11-27T04:20:49Z",
-  "updated_at": "2026-11-27T15:29:10+00:00"
+  "secret_version": "2026-11-28T04:00:56Z",
+  "updated_at": "2026-11-28T04:00:57+00:00"
 }

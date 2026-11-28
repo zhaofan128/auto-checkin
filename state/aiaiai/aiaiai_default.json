@@ -2,16 +2,16 @@
   "account_key": "aiaiai:default",
   "account_label": "aiaiai",
   "generation": 0,
-  "last_checkin_status": "already_checked",
+  "last_checkin_status": "success",
   "last_error_type": null,
-  "last_points_current": 147387,
-  "last_points_gained": null,
-  "last_points_source": "api_unavailable",
+  "last_points_current": 195009,
+  "last_points_gained": 47622,
+  "last_points_source": "api_field",
   "last_points_unit": "quota",
-  "last_run_id": "20261127T232851-efe87c",
-  "last_success_at": "2026-11-27T15:29:19+00:00",
+  "last_run_id": "20261128T120030-f41cca",
+  "last_success_at": "2026-11-28T04:01:09+00:00",
   "platform": "aiaiai",
   "schema_version": 1,
   "secret_version": null,
-  "updated_at": "2026-11-27T15:29:19+00:00"
+  "updated_at": "2026-11-28T04:01:09+00:00"
 }
